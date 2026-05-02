@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lunar_calendar/lunar_calendar.dart';
 
-import '../data/app_repository.dart';
-import '../models/pool_entity.dart';
-import '../models/round_entity.dart';
-import '../models/statement_models.dart';
-import '../models/user_entity.dart';
-import '../services/sample_data_service.dart';
-import '../services/lunar_schedule_service.dart';
+import 'package:hop_phuong/src/data/app_repository.dart';
+import 'package:hop_phuong/src/models/pool_entity.dart';
+import 'package:hop_phuong/src/models/round_entity.dart';
+import 'package:hop_phuong/src/models/statement_models.dart';
+import 'package:hop_phuong/src/models/user_entity.dart';
+import 'package:hop_phuong/src/services/sample_data_service.dart';
+import 'package:hop_phuong/src/services/lunar_schedule_service.dart';
 
 final appRepositoryProvider = FutureProvider<AppRepository>((ref) async {
   final repository = await AppRepository.open();

@@ -1,5 +1,5 @@
 import 'dart:math';
-import '../data/app_repository.dart';
+import 'package:hop_phuong/src/data/app_repository.dart';
 import 'package:lunar_calendar/lunar_calendar.dart';
 
 class SampleDataService {

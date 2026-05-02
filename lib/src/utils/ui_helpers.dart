@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hop_phuong/src/data/app_repository.dart';
-import 'package:hop_phuong/src/models/pool_entity.dart';
-import 'package:hop_phuong/src/models/round_entity.dart';
-import 'package:hop_phuong/src/models/user_entity.dart';
-import 'package:hop_phuong/src/models/payment_status_entity.dart';
-import 'package:hop_phuong/src/providers/app_providers.dart';
-import 'package:hop_phuong/src/ui/dialogs/round_dialog.dart';
-import 'package:hop_phuong/src/utils/ui_helpers.dart';
+import '../data/app_repository.dart';
+import '../models/pool_entity.dart';
+import '../models/round_entity.dart';
+import '../models/user_entity.dart';
+import '../models/payment_status_entity.dart';
+import '../providers/app_providers.dart';
+import '../ui/dialogs/round_dialog.dart';
 
 Future<void> openRoundDialog(
   BuildContext context,

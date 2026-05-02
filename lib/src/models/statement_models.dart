@@ -22,6 +22,24 @@ class PoolStatementBreakdown {
   int get netBalance => receiveAmount - payAmount;
 }
 
+class StatementRoundOption {
+  StatementRoundOption({
+    required this.roundId,
+    required this.poolId,
+    required this.poolName,
+    required this.poolStartDate,
+    required this.roundNumber,
+    required this.date,
+  });
+
+  final int roundId;
+  final int poolId;
+  final String poolName;
+  final DateTime poolStartDate;
+  final int roundNumber;
+  final DateTime date;
+}
+
 class UserMonthlyStatement {
   UserMonthlyStatement({
     required this.userId,
@@ -40,5 +58,6 @@ class UserMonthlyStatement {
   final List<PoolStatementBreakdown> breakdowns;
 
   int get netBalance => totalReceive - totalPay;
-  bool get isAllPaid => breakdowns.isNotEmpty && breakdowns.every((b) => b.isPaid);
+  bool get isAllPaid =>
+      breakdowns.isNotEmpty && breakdowns.every((b) => b.isPaid);
 }

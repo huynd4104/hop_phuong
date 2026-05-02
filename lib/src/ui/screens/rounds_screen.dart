@@ -115,11 +115,24 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                       child: TextField(
                         decoration: InputDecoration(
                           hintText: 'Tìm người theo số hoặc số tiền…',
-                          prefixIcon: Icon(Icons.search_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                          hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                          hintStyle: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
                         ),
-                        onChanged: (value) => ref.read(roundSearchProvider.notifier).state = value,
+                        onChanged: (value) =>
+                            ref.read(roundSearchProvider.notifier).state =
+                                value,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -140,7 +153,10 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                                   item.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             )
@@ -192,7 +208,9 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                                 controller: _horizontalScrollController,
                                 scrollDirection: Axis.horizontal,
                                 child: ConstrainedBox(
-                                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                  constraints: BoxConstraints(
+                                    minWidth: constraints.maxWidth,
+                                  ),
                                   child: SingleChildScrollView(
                                     scrollDirection: Axis.vertical,
                                     child: DataTable(
@@ -202,11 +220,11 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                                       columnSpacing: 16,
                                       horizontalMargin: 12,
                                       columns: const [
-                                        DataColumn(label: Text('Tháng')),
+                                        DataColumn(label: Text('Kỳ')),
                                         DataColumn(label: Text('Ngày')),
                                         DataColumn(label: Text('Người lấy')),
                                         DataColumn(label: Text('Tiền đấu')),
-                                        DataColumn(label: Text('Đóng vào')),
+                                        DataColumn(label: Text('Tiền đóng')),
                                         DataColumn(label: Text('Tiền nhận')),
                                       ],
                                       rows: rounds
@@ -222,22 +240,15 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                                                 ),
                                                 DataCell(
                                                   SizedBox(
-                                                    width: 90,
-                                                    child: Text.rich(
-                                                      TextSpan(
-                                                        children: [
-                                                          TextSpan(
-                                                            text: 'Â: ${formatLunarDate(round.date)}\n',
-                                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                                          ),
-                                                          TextSpan(
-                                                            text: 'D: ${formatSolarDate(round.date)}',
-                                                            style: TextStyle(
-                                                              fontSize: 10,
-                                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                                            ),
-                                                          ),
-                                                        ],
+                                                    width: 110,
+                                                    child: Text(
+                                                      formatLunarDate(
+                                                        round.date,
+                                                      ),
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                                   ),
@@ -246,8 +257,11 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                                                   Text(
                                                     winnerName,
                                                     style: TextStyle(
-                                                      color: Theme.of(context).colorScheme.primary,
-                                                      fontWeight: FontWeight.bold,
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                   onTap: () => openRoundDialog(
@@ -259,73 +273,135 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                                                   ),
                                                 ),
                                                 DataCell(
-                                                  Text(formatMoney(round.bidAmount)),
-                                                ),
-                                                DataCell(
-                                                  Consumer(
-                                                    builder: (context, ref, _) {
-                                                      final fullyPaidAsync = ref.watch(fullyPaidContributionRoundsProvider);
-                                                      final isPaid = fullyPaidAsync.value?.contains(round.id) ?? false;
-                                                      
-                                                      return Row(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          Text(
-                                                            formatMoney(round.contributionAmount),
-                                                            style: TextStyle(
-                                                              color: isPaid ? Colors.green : Theme.of(context).colorScheme.secondary,
-                                                              fontWeight: FontWeight.bold,
-                                                            ),
-                                                          ),
-                                                          if (isPaid) ...[
-                                                            const SizedBox(width: 4),
-                                                            const Icon(Icons.check_circle_rounded, color: Colors.green, size: 14),
-                                                          ],
-                                                        ],
-                                                      );
-                                                    },
-                                                  ),
-                                                  onTap: () => openPaymentsSheet(
-                                                    context,
-                                                    ref,
-                                                    repository: repository,
-                                                    pool: pool,
-                                                    round: round,
-                                                    showOnlyWinner: false,
+                                                  Text(
+                                                    formatMoney(
+                                                      round.bidAmount,
+                                                    ),
                                                   ),
                                                 ),
                                                 DataCell(
                                                   Consumer(
                                                     builder: (context, ref, _) {
-                                                      final winnerPaidAsync = ref.watch(winnerPaidRoundsProvider);
-                                                      final isPaid = winnerPaidAsync.value?.contains(round.id) ?? false;
-                                                      
+                                                      final fullyPaidAsync = ref
+                                                          .watch(
+                                                            fullyPaidContributionRoundsProvider,
+                                                          );
+                                                      final isPaid =
+                                                          fullyPaidAsync.value
+                                                              ?.contains(
+                                                                round.id,
+                                                              ) ??
+                                                          false;
+
                                                       return Row(
-                                                        mainAxisSize: MainAxisSize.min,
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
                                                         children: [
                                                           Text(
-                                                            formatMoney(round.netReceiveAmount),
+                                                            formatMoney(
+                                                              round
+                                                                  .contributionAmount,
+                                                            ),
                                                             style: TextStyle(
-                                                              color: isPaid ? Colors.green : Theme.of(context).colorScheme.tertiary,
-                                                              fontWeight: FontWeight.bold,
+                                                              color: isPaid
+                                                                  ? Colors.green
+                                                                  : Theme.of(
+                                                                          context,
+                                                                        )
+                                                                        .colorScheme
+                                                                        .secondary,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
                                                             ),
                                                           ),
                                                           if (isPaid) ...[
-                                                            const SizedBox(width: 4),
-                                                            const Icon(Icons.check_circle_rounded, color: Colors.green, size: 14),
+                                                            const SizedBox(
+                                                              width: 4,
+                                                            ),
+                                                            const Icon(
+                                                              Icons
+                                                                  .check_circle_rounded,
+                                                              color:
+                                                                  Colors.green,
+                                                              size: 14,
+                                                            ),
                                                           ],
                                                         ],
                                                       );
                                                     },
                                                   ),
-                                                  onTap: () => openPaymentsSheet(
-                                                    context,
-                                                    ref,
-                                                    repository: repository,
-                                                    pool: pool,
-                                                    round: round,
-                                                    showOnlyWinner: true,
+                                                  onTap: () =>
+                                                      openPaymentsSheet(
+                                                        context,
+                                                        ref,
+                                                        repository: repository,
+                                                        pool: pool,
+                                                        round: round,
+                                                        showOnlyWinner: false,
+                                                      ),
+                                                ),
+                                                DataCell(
+                                                  Consumer(
+                                                    builder: (context, ref, _) {
+                                                      final winnerPaidAsync =
+                                                          ref.watch(
+                                                            winnerPaidRoundsProvider,
+                                                          );
+                                                      final isPaid =
+                                                          winnerPaidAsync.value
+                                                              ?.contains(
+                                                                round.id,
+                                                              ) ??
+                                                          false;
+
+                                                      return Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            formatMoney(
+                                                              round
+                                                                  .netReceiveAmount,
+                                                            ),
+                                                            style: TextStyle(
+                                                              color: isPaid
+                                                                  ? Colors.green
+                                                                  : Theme.of(
+                                                                          context,
+                                                                        )
+                                                                        .colorScheme
+                                                                        .tertiary,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                          if (isPaid) ...[
+                                                            const SizedBox(
+                                                              width: 4,
+                                                            ),
+                                                            const Icon(
+                                                              Icons
+                                                                  .check_circle_rounded,
+                                                              color:
+                                                                  Colors.green,
+                                                              size: 14,
+                                                            ),
+                                                          ],
+                                                        ],
+                                                      );
+                                                    },
                                                   ),
+                                                  onTap: () =>
+                                                      openPaymentsSheet(
+                                                        context,
+                                                        ref,
+                                                        repository: repository,
+                                                        pool: pool,
+                                                        round: round,
+                                                        showOnlyWinner: true,
+                                                      ),
                                                 ),
                                               ],
                                             );

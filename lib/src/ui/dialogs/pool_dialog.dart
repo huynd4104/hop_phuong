@@ -43,12 +43,25 @@ import 'package:hop_phuong/src/ui/dialogs/round_dialog.dart';
 import 'package:hop_phuong/src/models/statement_totals.dart';
 
 class PoolDialog extends StatefulWidget {
-  const PoolDialog({required this.users, required this.onSave, this.pool, this.initialMemberIds = const <int>[]});
+  const PoolDialog({
+    required this.users,
+    required this.onSave,
+    this.pool,
+    this.initialMemberIds = const <int>[],
+  });
 
   final Pool? pool;
   final List<User> users;
   final List<int> initialMemberIds;
-  final Future<void> Function(String name, int baseAmount, int totalRounds, int meetingDay, DateTime startDate, List<int> memberIds) onSave;
+  final Future<void> Function(
+    String name,
+    int baseAmount,
+    int totalRounds,
+    int meetingDay,
+    DateTime startDate,
+    List<int> memberIds,
+  )
+  onSave;
 
   @override
   State<PoolDialog> createState() => PoolDialogState();
@@ -70,7 +83,11 @@ class PoolDialogState extends State<PoolDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.pool?.name ?? '');
-    _baseController = TextEditingController(text: widget.pool != null ? formatSimpleMoney(widget.pool!.baseAmount) : '');
+    _baseController = TextEditingController(
+      text: widget.pool != null
+          ? formatSimpleMoney(widget.pool!.baseAmount)
+          : '',
+    );
     _searchController = TextEditingController();
     _searchController.addListener(() {
       setState(() {
@@ -103,10 +120,13 @@ class PoolDialogState extends State<PoolDialog> {
 
   List<User> get _filteredUsers {
     if (_searchQuery.isEmpty) return widget.users;
-    return widget.users.where((user) => 
-      user.name.toLowerCase().contains(_searchQuery) ||
-      user.phone.toLowerCase().contains(_searchQuery)
-    ).toList();
+    return widget.users
+        .where(
+          (user) =>
+              user.name.toLowerCase().contains(_searchQuery) ||
+              user.phone.toLowerCase().contains(_searchQuery),
+        )
+        .toList();
   }
 
   DateTime? get _endDate {
@@ -123,165 +143,194 @@ class PoolDialogState extends State<PoolDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: null, 
-      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24), // Tăng padding top từ 20 mặc định lên để an toàn hơn
+      title: null,
+      contentPadding: const EdgeInsets.fromLTRB(
+        24,
+        16,
+        24,
+        24,
+      ), // Tăng padding top từ 20 mặc định lên để an toàn hơn
       content: SizedBox(
         width: 560,
         child: SingleChildScrollView(
           controller: _mainScrollController,
-            child: SafeArea(
-              bottom: false, // Chỉ cần quan tâm tới top khi bị đẩy lên
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 12), // Khoảng trống cho label "Tên Phường" khi nó float lên
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Tên Phường'),
-                      validator: (value) => value == null || value.trim().isEmpty ? 'Vui lòng nhập tên Phường' : null,
-                    ),
-                    const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _baseController,
-                        decoration: const InputDecoration(
-                          labelText: 'Tiền gốc (VND)',
-                          prefixIcon: Icon(Icons.payments_outlined),
-                        ),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [CurrencyInputFormatter()],
-                        validator: positiveIntValidator,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Card(
-                        margin: EdgeInsets.zero,
-                        color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text('Tổng số người', style: Theme.of(context).textTheme.labelSmall),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${_selectedMemberIds.length} người',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DateInfoCard(
-                            label: 'Bắt đầu (Âm)',
-                            date: _startDate,
-                            isLunar: true,
-                            onTap: () async {
-                              final lunarNow = LunarCalendar.solarToLunar(_startDate);
-                              var initialDay = lunarNow.day;
-                              if (lunarNow.month == 2 && initialDay > 28) initialDay = 28;
-                              final selected = await showDatePicker(
-                                context: context,
-                                helpText: 'CHỌN NGÀY BẮT ĐẦU (ÂM LỊCH)',
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime(2100),
-                                initialDate: DateTime(lunarNow.year, lunarNow.month, initialDay),
-                              );
-                              if (selected != null) {
-                                try {
-                                  var day = selected.day;
-                                  if (day > 30) day = 30; // Prevent invalid lunar day
-                                  final solar = LunarCalendar.lunarToSolar(day, selected.month, selected.year);
-                                  setState(() => _startDate = solar);
-                                } catch (e) {
-                                  showSnackBar(context, 'Ngày âm lịch không hợp lệ.', isError: true);
-                                }
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DateInfoCard(
-                            label: 'Kết thúc (Âm)',
-                            date: _endDate ?? _startDate,
-                            isLunar: true,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DateInfoCard(
-                            label: 'Bắt đầu (Dương)',
-                            date: _startDate,
-                            isLunar: false,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DateInfoCard(
-                            label: 'Kết thúc (Dương)',
-                            date: _endDate ?? _startDate,
-                            isLunar: false,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Thành viên', style: Theme.of(context).textTheme.titleMedium),
-                    Text('${_selectedMemberIds.length} đã chọn', style: Theme.of(context).textTheme.bodySmall),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                if (widget.users.isNotEmpty)
-                  TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      labelText: 'Tìm kiếm (tên, SĐT)',
-                      prefixIcon: Icon(Icons.search),
-                      isDense: true,
-                    ),
+          child: SafeArea(
+            bottom: false, // Chỉ cần quan tâm tới top khi bị đẩy lên
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    height: 12,
+                  ), // Khoảng trống cho label "Tên Phường" khi nó float lên
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: 'Tên Phường'),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Vui lòng nhập tên Phường'
+                        : null,
                   ),
-                if (widget.users.isNotEmpty) const SizedBox(height: 8),
-                widget.users.isEmpty
-                    ? const Center(child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Text('Hãy tạo thành viên trước.'),
-                      ))
-                    : _filteredUsers.isEmpty
-                        ? const Center(child: Padding(
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _baseController,
+                          decoration: const InputDecoration(
+                            labelText: 'Tiền gốc (VND)',
+                            prefixIcon: Icon(Icons.payments_outlined),
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [CurrencyInputFormatter()],
+                          validator: positiveIntValidator,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Card(
+                          margin: EdgeInsets.zero,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .secondaryContainer
+                              .withValues(alpha: 0.3),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Tổng số người',
+                                  style: Theme.of(context).textTheme.labelSmall,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${_selectedMemberIds.length} người',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DateInfoCard(
+                              label: 'Bắt đầu (Âm)',
+                              date: _startDate,
+                              isLunar: true,
+                              onTap: () async {
+                                final lunarNow = LunarCalendar.solarToLunar(
+                                  _startDate,
+                                );
+                                var initialDay = lunarNow.day;
+                                if (lunarNow.month == 2 && initialDay > 28)
+                                  initialDay = 28;
+                                final selected = await showDatePicker(
+                                  context: context,
+                                  helpText: 'CHỌN NGÀY BẮT ĐẦU (ÂM LỊCH)',
+                                  firstDate: DateTime(2000),
+                                  lastDate: DateTime(2100),
+                                  initialDate: DateTime(
+                                    lunarNow.year,
+                                    lunarNow.month,
+                                    initialDay,
+                                  ),
+                                );
+                                if (selected != null) {
+                                  try {
+                                    var day = selected.day;
+                                    if (day > 30)
+                                      day = 30; // Prevent invalid lunar day
+                                    final solar = LunarCalendar.lunarToSolar(
+                                      day,
+                                      selected.month,
+                                      selected.year,
+                                    );
+                                    setState(() => _startDate = solar);
+                                  } catch (e) {
+                                    showSnackBar(
+                                      context,
+                                      'Ngày âm lịch không hợp lệ.',
+                                      isError: true,
+                                    );
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DateInfoCard(
+                              label: 'Kết thúc (Âm)',
+                              date: _endDate ?? _startDate,
+                              isLunar: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Thành viên',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        '${_selectedMemberIds.length} đã chọn',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (widget.users.isNotEmpty)
+                    TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        labelText: 'Tìm kiếm (tên, SĐT)',
+                        prefixIcon: Icon(Icons.search),
+                        isDense: true,
+                      ),
+                    ),
+                  if (widget.users.isNotEmpty) const SizedBox(height: 8),
+                  widget.users.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text('Hãy tạo thành viên trước.'),
+                          ),
+                        )
+                      : _filteredUsers.isEmpty
+                      ? const Center(
+                          child: Padding(
                             padding: EdgeInsets.all(16.0),
                             child: Text('Không tìm thấy thành viên.'),
-                          ))
-                        : ListView.builder(
+                          ),
+                        )
+                      : ListView.builder(
                           physics: const NeverScrollableScrollPhysics(),
                           shrinkWrap: true,
                           itemCount: _filteredUsers.length,
@@ -291,21 +340,27 @@ class PoolDialogState extends State<PoolDialog> {
                               dense: true,
                               contentPadding: EdgeInsets.zero,
                               value: _selectedMemberIds.contains(user.id),
-                              onChanged: user.isOwner ? null : (checked) {
-                                setState(() {
-                                  if (checked == true) {
-                                    _selectedMemberIds.add(user.id);
-                                  } else {
-                                    _selectedMemberIds.remove(user.id);
-                                  }
-                                });
-                              },
+                              onChanged: user.isOwner
+                                  ? null
+                                  : (checked) {
+                                      setState(() {
+                                        if (checked == true) {
+                                          _selectedMemberIds.add(user.id);
+                                        } else {
+                                          _selectedMemberIds.remove(user.id);
+                                        }
+                                      });
+                                    },
                               title: Row(
                                 children: [
                                   Text(user.name),
                                   if (user.isOwner) ...[
                                     const SizedBox(width: 4),
-                                    const Icon(Icons.stars_rounded, color: Colors.amber, size: 16),
+                                    const Icon(
+                                      Icons.stars_rounded,
+                                      color: Colors.amber,
+                                      size: 16,
+                                    ),
                                   ],
                                 ],
                               ),
@@ -313,14 +368,17 @@ class PoolDialogState extends State<PoolDialog> {
                             );
                           },
                         ),
-                  ],
-                ),
+                ],
               ),
             ),
           ),
         ),
+      ),
       actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.of(context).pop(), child: const Text('Hủy')),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Hủy'),
+        ),
         FilledButton(
           onPressed: _saving
               ? null
@@ -329,7 +387,11 @@ class PoolDialogState extends State<PoolDialog> {
                     return;
                   }
                   if (_selectedMemberIds.isEmpty) {
-                    showSnackBar(context, 'Chọn ít nhất một thành viên', isError: true);
+                    showSnackBar(
+                      context,
+                      'Chọn ít nhất một thành viên',
+                      isError: true,
+                    );
                     return;
                   }
 
@@ -344,7 +406,9 @@ class PoolDialogState extends State<PoolDialog> {
 
                   setState(() => _saving = true);
                   try {
-                    final meetingDay = LunarCalendar.solarToLunar(_startDate).day;
+                    final meetingDay = LunarCalendar.solarToLunar(
+                      _startDate,
+                    ).day;
                     await widget.onSave(
                       _nameController.text,
                       int.parse(_baseController.text.replaceAll('.', '')),
@@ -362,10 +426,15 @@ class PoolDialogState extends State<PoolDialog> {
                     }
                   }
                 },
-          child: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Lưu'),
+          child: _saving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Lưu'),
         ),
       ],
     );
   }
 }
-

@@ -60,7 +60,9 @@ class StatementExportService {
 
     if (kIsWeb) {
       // Trên Web, chúng ta sẽ trả về một lỗi rõ ràng cho đến khi tích hợp công cụ tải xuống
-      throw UnsupportedError('Xuất file Excel trực tiếp không được hỗ trợ trên Web.');
+      throw UnsupportedError(
+        'Xuất file Excel trực tiếp không được hỗ trợ trên Web.',
+      );
     }
 
     final directory = await getApplicationDocumentsDirectory();
@@ -69,7 +71,8 @@ class StatementExportService {
       await exportDirectory.create(recursive: true);
     }
 
-    final fileName = 'monthly_statement_${year.toString().padLeft(4, '0')}_${month.toString().padLeft(2, '0')}.xlsx';
+    final fileName =
+        'monthly_statement_${year.toString().padLeft(4, '0')}_${month.toString().padLeft(2, '0')}.xlsx';
     final file = File('${exportDirectory.path}/$fileName');
     await file.writeAsBytes(bytes, flush: true);
     return file;

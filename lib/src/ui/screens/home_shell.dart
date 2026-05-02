@@ -46,7 +46,7 @@ class HomeShell extends ConsumerWidget {
   static const _titles = <String>[
     'Thành viên',
     'Phường',
-    'Tháng Phường',
+    'Kỳ Phường',
     'Bảng kê',
     'Sao lưu',
   ];

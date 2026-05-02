@@ -23,11 +23,19 @@ final statementSearchProvider = StateProvider<String>((ref) => '');
 final selectedPoolIdProvider = StateProvider<int?>((ref) => null);
 final poolFilterDayProvider = StateProvider<int?>((ref) => null);
 
-final statementMonthProvider = StateProvider<DateTime>((ref) {
+final statementSelectedYearProvider = StateProvider<int>((ref) {
   final now = DateTime.now();
-  final lunar = LunarCalendar.solarToLunar(now);
-  return DateTime(lunar.year, lunar.month);
+  return LunarCalendar.solarToLunar(now).year;
 });
+
+final statementSelectedMonthProvider = StateProvider<int?>((ref) {
+  final now = DateTime.now();
+  return LunarCalendar.solarToLunar(now).month;
+});
+
+final statementSelectedRoundIdsProvider = StateProvider<Set<int>>(
+  (ref) => <int>{},
+);
 
 final membersProvider = FutureProvider<List<User>>((ref) async {
   final repository = await ref.watch(appRepositoryProvider.future);
@@ -63,7 +71,13 @@ final roundsProvider = FutureProvider<List<Round>>((ref) async {
   if (query.isEmpty) {
     return rounds;
   }
-  return rounds.where((round) => round.roundNumber.toString().contains(query) || round.bidAmount.toString().contains(query)).toList(growable: false);
+  return rounds
+      .where(
+        (round) =>
+            round.roundNumber.toString().contains(query) ||
+            round.bidAmount.toString().contains(query),
+      )
+      .toList(growable: false);
 });
 
 final winnerPaidRoundsProvider = FutureProvider<Set<int>>((ref) async {
@@ -73,16 +87,33 @@ final winnerPaidRoundsProvider = FutureProvider<Set<int>>((ref) async {
   return repository.getWinnerPaidRoundIds(poolId);
 });
 
-final fullyPaidContributionRoundsProvider = FutureProvider<Set<int>>((ref) async {
+final fullyPaidContributionRoundsProvider = FutureProvider<Set<int>>((
+  ref,
+) async {
   final repository = await ref.watch(appRepositoryProvider.future);
   final poolId = ref.watch(selectedPoolIdProvider);
   if (poolId == null) return <int>{};
   return repository.getFullyPaidContributionRoundIds(poolId);
 });
 
-final statementProvider = FutureProvider<List<UserMonthlyStatement>>((ref) async {
+final statementRoundOptionsProvider =
+    FutureProvider<List<StatementRoundOption>>((ref) async {
+      final repository = await ref.watch(appRepositoryProvider.future);
+      final year = ref.watch(statementSelectedYearProvider);
+      final month = ref.watch(statementSelectedMonthProvider);
+      if (month == null) return <StatementRoundOption>[];
+      return repository.getStatementRoundOptions(month: month, year: year);
+    });
+
+final statementProvider = FutureProvider<List<UserMonthlyStatement>>((
+  ref,
+) async {
   final repository = await ref.watch(appRepositoryProvider.future);
-  final filter = ref.watch(statementMonthProvider);
+  final selectedRoundIds = ref.watch(statementSelectedRoundIdsProvider);
   final query = ref.watch(statementSearchProvider);
-  return repository.buildMonthlyStatement(month: filter.month, year: filter.year, query: query);
+  if (selectedRoundIds.isEmpty) return <UserMonthlyStatement>[];
+  return repository.buildStatementForRoundIds(
+    roundIds: selectedRoundIds,
+    query: query,
+  );
 });

@@ -1,50 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
-
-import 'package:hop_phuong/src/data/app_repository.dart';
 import 'package:hop_phuong/src/models/user_entity.dart';
-import 'package:hop_phuong/src/models/pool_entity.dart';
-import 'package:hop_phuong/src/models/pool_member_entity.dart';
-import 'package:hop_phuong/src/models/round_entity.dart';
-import 'package:hop_phuong/src/models/payment_status_entity.dart';
-import 'package:hop_phuong/src/models/statement_models.dart';
-import 'package:hop_phuong/src/providers/app_providers.dart';
-import 'package:hop_phuong/src/services/backup_service.dart';
-import 'package:hop_phuong/src/services/financial_calculator.dart';
-import 'package:hop_phuong/src/services/lunar_schedule_service.dart';
-import 'package:hop_phuong/src/services/statement_export_service.dart';
-import 'package:hop_phuong/src/utils/formatters.dart';
 import 'package:hop_phuong/src/utils/ui_helpers.dart';
 
-// UI Imports (nếu cần)
-import 'package:hop_phuong/src/ui/screens/home_shell.dart';
-import 'package:hop_phuong/src/ui/screens/members_screen.dart';
-import 'package:hop_phuong/src/ui/screens/pools_screen.dart';
-import 'package:hop_phuong/src/ui/screens/rounds_screen.dart';
-import 'package:hop_phuong/src/ui/screens/statement_screen.dart';
-import 'package:hop_phuong/src/ui/screens/backup_screen.dart';
-import 'package:hop_phuong/src/ui/widgets/side_nav.dart';
-import 'package:hop_phuong/src/ui/widgets/info_card.dart';
-import 'package:hop_phuong/src/ui/widgets/feature_card.dart';
-import 'package:hop_phuong/src/ui/widgets/mini_chip.dart';
-import 'package:hop_phuong/src/ui/widgets/pool_header_card.dart';
-import 'package:hop_phuong/src/ui/widgets/empty_state.dart';
-import 'package:hop_phuong/src/ui/widgets/error_view.dart';
-import 'package:hop_phuong/src/ui/widgets/date_info_card.dart';
-import 'package:hop_phuong/src/ui/dialogs/user_dialog.dart';
-import 'package:hop_phuong/src/ui/dialogs/pool_dialog.dart';
-import 'package:hop_phuong/src/ui/dialogs/round_dialog.dart';
-import 'package:hop_phuong/src/models/statement_totals.dart';
-
 class UserDialog extends StatefulWidget {
-  const UserDialog({required this.onSave, this.user});
+  const UserDialog({required this.onSave, this.user, required this.existingUsers});
 
   final User? user;
+  final List<User> existingUsers;
   final Future<void> Function(String name, String phone) onSave;
 
   @override
@@ -85,23 +47,45 @@ class UserDialogState extends State<UserDialog> {
               TextFormField(
                 controller: _nameController,
                 enabled: widget.user?.isOwner != true,
-                decoration: const InputDecoration(labelText: 'Tên thành viên'),
-                validator: (value) => value == null || value.trim().isEmpty ? 'Vui lòng nhập tên' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Tên thành viên',
+                  hintText: 'Nhập tên thành viên',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Vui lòng nhập tên';
+                  }
+                  final trimmedName = value.trim();
+                  final isDuplicate = widget.existingUsers.any((u) => 
+                    u.id != widget.user?.id && 
+                    u.name.trim().toLowerCase() == trimmedName.toLowerCase()
+                  );
+                  if (isDuplicate) {
+                    return 'Tên thành viên đã tồn tại';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _phoneController,
                 enabled: widget.user?.isOwner != true,
-                decoration: const InputDecoration(labelText: 'Điện thoại'),
+                decoration: const InputDecoration(
+                  labelText: 'Điện thoại (không bắt buộc)',
+                  hintText: 'Nhập số điện thoại',
+                ),
                 keyboardType: TextInputType.phone,
-                validator: (value) => value == null || value.trim().isEmpty ? 'Vui lòng nhập số điện thoại' : null,
+                // Validator removed for phone as it is now optional
               ),
             ],
           ),
         ),
       ),
       actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.of(context).pop(), child: const Text('Hủy')),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Hủy'),
+        ),
         FilledButton(
           onPressed: _saving
               ? null
@@ -121,7 +105,7 @@ class UserDialogState extends State<UserDialog> {
                   
                   setState(() => _saving = true);
                   try {
-                    await widget.onSave(_nameController.text, _phoneController.text);
+                    await widget.onSave(_nameController.text.trim(), _phoneController.text.trim());
                     if (context.mounted) {
                       Navigator.of(context).pop();
                     }
@@ -131,10 +115,13 @@ class UserDialogState extends State<UserDialog> {
                     }
                   }
                 },
-          child: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Lưu'),
+          child: _saving 
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) 
+              : const Text('Lưu'),
         ),
       ],
     );
   }
 }
+
 

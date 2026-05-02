@@ -1,45 +1,15 @@
 import 'package:hop_phuong/src/utils/ui_helpers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
-import 'package:hop_phuong/src/data/app_repository.dart';
 import 'package:hop_phuong/src/models/user_entity.dart';
 import 'package:hop_phuong/src/models/pool_entity.dart';
-import 'package:hop_phuong/src/models/pool_member_entity.dart';
-import 'package:hop_phuong/src/models/round_entity.dart';
-import 'package:hop_phuong/src/models/payment_status_entity.dart';
-import 'package:hop_phuong/src/models/statement_models.dart';
 import 'package:hop_phuong/src/providers/app_providers.dart';
-import 'package:hop_phuong/src/services/backup_service.dart';
-import 'package:hop_phuong/src/services/financial_calculator.dart';
-import 'package:hop_phuong/src/services/lunar_schedule_service.dart';
-import 'package:hop_phuong/src/services/statement_export_service.dart';
 import 'package:hop_phuong/src/utils/formatters.dart';
 
-// UI Imports (nếu cần)
-import 'package:hop_phuong/src/ui/screens/home_shell.dart';
-import 'package:hop_phuong/src/ui/screens/members_screen.dart';
-import 'package:hop_phuong/src/ui/screens/pools_screen.dart';
-import 'package:hop_phuong/src/ui/screens/rounds_screen.dart';
-import 'package:hop_phuong/src/ui/screens/statement_screen.dart';
-import 'package:hop_phuong/src/ui/screens/backup_screen.dart';
-import 'package:hop_phuong/src/ui/widgets/side_nav.dart';
-import 'package:hop_phuong/src/ui/widgets/info_card.dart';
-import 'package:hop_phuong/src/ui/widgets/feature_card.dart';
-import 'package:hop_phuong/src/ui/widgets/mini_chip.dart';
-import 'package:hop_phuong/src/ui/widgets/pool_header_card.dart';
 import 'package:hop_phuong/src/ui/widgets/empty_state.dart';
 import 'package:hop_phuong/src/ui/widgets/error_view.dart';
-import 'package:hop_phuong/src/ui/widgets/date_info_card.dart';
 import 'package:hop_phuong/src/ui/dialogs/user_dialog.dart';
-import 'package:hop_phuong/src/ui/dialogs/pool_dialog.dart';
-import 'package:hop_phuong/src/ui/dialogs/round_dialog.dart';
-import 'package:hop_phuong/src/models/statement_totals.dart';
 
 class MembersScreen extends ConsumerStatefulWidget {
   const MembersScreen({super.key});
@@ -83,7 +53,7 @@ class _MembersScreenState extends ConsumerState<MembersScreen> {
               ),
               const SizedBox(width: 12),
               FilledButton.icon(
-                onPressed: () => _openUserDialog(context, ref),
+                onPressed: () => _openUserDialog(context, ref, members: membersAsync.value ?? []),
                 icon: const Icon(Icons.person_add_rounded, size: 18),
                 label: Text(isMobile ? 'Thêm' : 'Thêm thành viên'),
               ),
@@ -155,21 +125,23 @@ class _MembersScreenState extends ConsumerState<MembersScreen> {
                                       ],
                                     ],
                                   ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.phone_outlined, size: 13, color: cs.onSurfaceVariant),
-                                      const SizedBox(width: 4),
-                                      Text(m.phone, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-                                    ],
-                                  ),
+                                  if (m.phone.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.phone_outlined, size: 13, color: cs.onSurfaceVariant),
+                                        const SizedBox(width: 4),
+                                        Text(m.phone, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
                             if (!m.isOwner) ...[
-                              IconButton(
+                      IconButton(
                                 tooltip: 'Sửa',
-                                onPressed: () => _openUserDialog(context, ref, user: m),
+                                onPressed: () => _openUserDialog(context, ref, user: m, members: members),
                                 icon: Icon(Icons.edit_rounded, color: cs.primary, size: 20),
                                 style: IconButton.styleFrom(backgroundColor: cs.primaryContainer.withValues(alpha: 0.5)),
                               ),
@@ -213,14 +185,18 @@ class _MembersScreenState extends ConsumerState<MembersScreen> {
     );
   }
 
-  void _openUserDialog(BuildContext context, WidgetRef ref, {User? user}) {
+  void _openUserDialog(BuildContext context, WidgetRef ref, {User? user, required List<User> members}) {
     showDialog<void>(
       context: context,
-      builder: (dialogContext) => UserDialog(user: user, onSave: (name, phone) async {
-        final repo = await ref.read(appRepositoryProvider.future);
-        await repo.saveUser(id: user?.id, name: name, phone: phone);
-        refreshAll(ref);
-      }),
+      builder: (dialogContext) => UserDialog(
+        user: user, 
+        existingUsers: members,
+        onSave: (name, phone) async {
+          final repo = await ref.read(appRepositoryProvider.future);
+          await repo.saveUser(id: user?.id, name: name, phone: phone);
+          refreshAll(ref);
+        },
+      ),
     );
   }
 

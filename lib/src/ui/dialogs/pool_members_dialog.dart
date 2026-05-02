@@ -178,7 +178,7 @@ class _PoolMembersDialogState extends State<PoolMembersDialog> {
                         ],
                       ],
                     ),
-                    subtitle: Text(m.phone),
+                    subtitle: m.phone.isNotEmpty ? Text(m.phone) : null,
                     trailing: hasWon
                         ? Column(
                             mainAxisAlignment: MainAxisAlignment.center,

@@ -364,7 +364,7 @@ class PoolDialogState extends State<PoolDialog> {
                                   ],
                                 ],
                               ),
-                              subtitle: Text(user.phone),
+                              subtitle: user.phone.isNotEmpty ? Text(user.phone) : null,
                             );
                           },
                         ),

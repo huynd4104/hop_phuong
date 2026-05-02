@@ -57,6 +57,7 @@ Future<void> openPaymentsSheet(
   required AppRepository repository,
   required Pool pool,
   required Round round,
+  bool showOnlyWinner = false,
 }) async {
   final members = await repository.getPoolMembers(pool.id);
   final statuses = await repository.getPaymentStatusesForRound(round.id);
@@ -77,6 +78,15 @@ Future<void> openPaymentsSheet(
       return StatefulBuilder(
         builder: (context, setSheetState) {
           final filteredMembers = members.where((m) {
+            // Lọc theo yêu cầu: chỉ người lấy hoặc chỉ những người đóng (không phải người lấy)
+            if (round.winnerId != null) {
+              if (showOnlyWinner) {
+                if (m.id != round.winnerId) return false;
+              } else {
+                if (m.id == round.winnerId) return false;
+              }
+            }
+
             if (searchQuery.isEmpty) return true;
             final query = removeDiacritics(searchQuery.toLowerCase());
             final name = removeDiacritics(m.name.toLowerCase());
@@ -96,31 +106,33 @@ Future<void> openPaymentsSheet(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Thanh toán tháng thứ ${round.roundNumber}',
+                  showOnlyWinner ? 'Xác nhận nhận tiền tháng thứ ${round.roundNumber}' : 'Danh sách đóng tiền tháng thứ ${round.roundNumber}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Tìm theo tên hoặc số điện thoại…',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                if (!showOnlyWinner) ...[
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Tìm theo tên hoặc số điện thoại…',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                     ),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    onChanged: (value) {
+                      setSheetState(() {
+                        searchQuery = value;
+                      });
+                    },
                   ),
-                  onChanged: (value) {
-                    setSheetState(() {
-                      searchQuery = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
+                ],
                 ConstrainedBox(
                   constraints: BoxConstraints(
                     maxHeight: MediaQuery.sizeOf(context).height * 0.5,
@@ -161,6 +173,7 @@ Future<void> openPaymentsSheet(
                                   statusMap[member.id] = checked ?? false;
                                 });
                                 ref.invalidate(roundsProvider);
+                                ref.invalidate(winnerPaidRoundsProvider);
                               },
                               title: Text(
                                 member.name,

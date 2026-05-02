@@ -208,7 +208,6 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                                         DataColumn(label: Text('Tiền đấu')),
                                         DataColumn(label: Text('Đóng vào')),
                                         DataColumn(label: Text('Tiền nhận')),
-                                        DataColumn(label: Text('Thao tác')),
                                       ],
                                       rows: rounds
                                           .map((round) {
@@ -243,57 +242,73 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                                                     ),
                                                   ),
                                                 ),
-                                                DataCell(Text(winnerName)),
+                                                DataCell(
+                                                  Text(
+                                                    winnerName,
+                                                    style: TextStyle(
+                                                      color: Theme.of(context).colorScheme.primary,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  onTap: () => openRoundDialog(
+                                                    context,
+                                                    ref,
+                                                    repository: repository,
+                                                    pool: pool,
+                                                    round: round,
+                                                  ),
+                                                ),
                                                 DataCell(
                                                   Text(formatMoney(round.bidAmount)),
                                                 ),
                                                 DataCell(
                                                   Text(
-                                                    formatMoney(
-                                                      round.contributionAmount,
+                                                    formatMoney(round.contributionAmount),
+                                                    style: TextStyle(
+                                                      color: Theme.of(context).colorScheme.secondary,
+                                                      fontWeight: FontWeight.bold,
                                                     ),
+                                                  ),
+                                                  onTap: () => openPaymentsSheet(
+                                                    context,
+                                                    ref,
+                                                    repository: repository,
+                                                    pool: pool,
+                                                    round: round,
+                                                    showOnlyWinner: false,
                                                   ),
                                                 ),
                                                 DataCell(
-                                                  Text(
-                                                    formatMoney(
-                                                      round.netReceiveAmount,
-                                                    ),
+                                                  Consumer(
+                                                    builder: (context, ref, _) {
+                                                      final winnerPaidAsync = ref.watch(winnerPaidRoundsProvider);
+                                                      final isPaid = winnerPaidAsync.value?.contains(round.id) ?? false;
+                                                      
+                                                      return Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            formatMoney(round.netReceiveAmount),
+                                                            style: TextStyle(
+                                                              color: isPaid ? Colors.green : Theme.of(context).colorScheme.tertiary,
+                                                              fontWeight: FontWeight.bold,
+                                                            ),
+                                                          ),
+                                                          if (isPaid) ...[
+                                                            const SizedBox(width: 4),
+                                                            const Icon(Icons.check_circle_rounded, color: Colors.green, size: 14),
+                                                          ],
+                                                        ],
+                                                      );
+                                                    },
                                                   ),
-                                                ),
-                                                DataCell(
-                                                  Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      IconButton(
-                                                        tooltip: 'Sửa người Phường',
-                                                        onPressed: () =>
-                                                            openRoundDialog(
-                                                              context,
-                                                              ref,
-                                                              repository: repository,
-                                                              pool: pool,
-                                                              round: round,
-                                                            ),
-                                                        icon: const Icon(
-                                                          Icons.edit_outlined,
-                                                        ),
-                                                      ),
-                                                      IconButton(
-                                                        tooltip: 'Thanh toán',
-                                                        onPressed: () =>
-                                                            openPaymentsSheet(
-                                                              context,
-                                                              ref,
-                                                              repository: repository,
-                                                              pool: pool,
-                                                              round: round,
-                                                            ),
-                                                        icon: const Icon(
-                                                          Icons.payments_outlined,
-                                                        ),
-                                                      ),
-                                                    ],
+                                                  onTap: () => openPaymentsSheet(
+                                                    context,
+                                                    ref,
+                                                    repository: repository,
+                                                    pool: pool,
+                                                    round: round,
+                                                    showOnlyWinner: true,
                                                   ),
                                                 ),
                                               ],

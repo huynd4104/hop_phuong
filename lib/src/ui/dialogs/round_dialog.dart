@@ -47,7 +47,7 @@ class RoundDialog extends StatefulWidget {
   final Pool pool;
   final Round round;
   final List<User> members;
-  final Future<void> Function(int winnerId, int bidAmount) onSave;
+  final Future<void> Function(int? winnerId, int bidAmount) onSave;
 
   @override
   State<RoundDialog> createState() => RoundDialogState();
@@ -85,19 +85,22 @@ class RoundDialogState extends State<RoundDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DropdownButtonFormField<int>(
-                initialValue: _winnerId,
+              DropdownButtonFormField<int?>(
+                value: _winnerId,
                 decoration: const InputDecoration(labelText: 'Người lấy'),
-                items: widget.members
-                    .map(
-                      (member) => DropdownMenuItem<int>(
-                        value: member.id,
-                        child: Text(member.name),
-                      ),
-                    )
-                    .toList(growable: false),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('Chưa có'),
+                  ),
+                  ...widget.members.map(
+                    (member) => DropdownMenuItem<int?>(
+                      value: member.id,
+                      child: Text(member.name),
+                    ),
+                  ),
+                ],
                 onChanged: (value) => setState(() => _winnerId = value),
-                validator: (value) => value == null ? 'Vui lòng chọn người lấy' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -126,7 +129,7 @@ class RoundDialogState extends State<RoundDialog> {
           onPressed: _saving
               ? null
               : () async {
-                  if (!(_formKey.currentState?.validate() ?? false) || _winnerId == null) {
+                  if (!(_formKey.currentState?.validate() ?? false)) {
                     return;
                   }
 
@@ -141,7 +144,7 @@ class RoundDialogState extends State<RoundDialog> {
 
                   setState(() => _saving = true);
                   try {
-                    await widget.onSave(_winnerId!, int.parse(_bidController.text.replaceAll('.', '')));
+                    await widget.onSave(_winnerId, int.parse(_bidController.text.replaceAll('.', '')));
                     if (context.mounted) {
                       Navigator.of(context).pop();
                     }

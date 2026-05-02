@@ -485,6 +485,35 @@ class AppRepository {
     return rounds;
   }
 
+  Future<Set<int>> getWinnerPaidRoundIds(int poolId) async {
+    if (kIsWeb) {
+      final rounds = _mockRounds.where((r) => r.poolId == poolId && r.winnerId != null);
+      final results = <int>{};
+      for (final r in rounds) {
+        final paid = _mockPaymentStatuses.any((ps) => ps.roundId == r.id && ps.userId == r.winnerId && ps.isPaid);
+        if (paid) results.add(r.id);
+      }
+      return results;
+    }
+
+    final rounds = await _isar!.rounds.filter().poolIdEqualTo(poolId).winnerIdIsNotNull().findAll();
+    final roundIds = rounds.map((r) => r.id).toList();
+    final statuses = await _isar!.paymentStatus
+        .filter()
+        .anyOf(roundIds, (q, int id) => q.roundIdEqualTo(id))
+        .isPaidEqualTo(true)
+        .findAll();
+
+    final results = <int>{};
+    final winnerMap = {for (final r in rounds) r.id: r.winnerId};
+    for (final s in statuses) {
+      if (s.userId == winnerMap[s.roundId]) {
+        results.add(s.roundId);
+      }
+    }
+    return results;
+  }
+
   Future<Round?> getRoundById(int id) async {
     if (kIsWeb) {
       return _mockRounds.cast<Round?>().firstWhere((r) => r?.id == id, orElse: () => null);
@@ -494,7 +523,7 @@ class AppRepository {
 
   Future<Round> saveRoundResult({
     required int roundId,
-    required int winnerId,
+    int? winnerId,
     required int bidAmount,
   }) async {
     if (kIsWeb) {
@@ -508,21 +537,32 @@ class AppRepository {
         throw StateError('Kỳ 1 là kỳ mặc định của Chủ hội, không thể thay đổi.');
       }
 
-      final memberIds = await getPoolMemberIds(pool.id);
-      if (!memberIds.contains(winnerId)) throw StateError('Người lấy phải là thành viên của Phường.');
+      if (winnerId == null) {
+        round
+          ..winnerId = null
+          ..bidAmount = 0
+          ..payoutAmount = 0
+          ..contributionAmount = 0
+          ..netReceiveAmount = 0;
+      } else {
+        final memberIds = await getPoolMemberIds(pool.id);
+        if (!memberIds.contains(winnerId)) {
+          throw StateError('Người lấy phải là thành viên của Phường.');
+        }
 
-      final calculation = FinancialCalculator.calculate(
-        memberCount: memberIds.length,
-        baseAmount: pool.baseAmount,
-        bidAmount: bidAmount,
-      );
+        final calculation = FinancialCalculator.calculate(
+          memberCount: memberIds.length,
+          baseAmount: pool.baseAmount,
+          bidAmount: bidAmount,
+        );
 
-      round
-        ..winnerId = winnerId
-        ..bidAmount = calculation.bidAmount
-        ..payoutAmount = calculation.payoutAmount
-        ..contributionAmount = calculation.contributionAmount
-        ..netReceiveAmount = calculation.netReceiveAmount;
+        round
+          ..winnerId = winnerId
+          ..bidAmount = calculation.bidAmount
+          ..payoutAmount = calculation.payoutAmount
+          ..contributionAmount = calculation.contributionAmount
+          ..netReceiveAmount = calculation.netReceiveAmount;
+      }
       
       return round;
     }
@@ -538,34 +578,46 @@ class AppRepository {
     }
 
     final memberIds = await getPoolMemberIds(pool.id);
-    if (!memberIds.contains(winnerId)) {
-      throw StateError('Người lấy ($winnerId) phải là thành viên của Phường (Pool: ${pool.id}, Members: $memberIds).');
+
+    if (winnerId == null) {
+      round
+        ..winnerId = null
+        ..bidAmount = 0
+        ..payoutAmount = 0
+        ..contributionAmount = 0
+        ..netReceiveAmount = 0;
+    } else {
+      if (!memberIds.contains(winnerId)) {
+        throw StateError(
+          'Người lấy ($winnerId) phải là thành viên của Phường (Pool: ${pool.id}, Members: $memberIds).',
+        );
+      }
+
+      final priorWinningRounds = await _isar!.rounds
+          .filter()
+          .poolIdEqualTo(pool.id)
+          .winnerIdEqualTo(winnerId)
+          .not()
+          .idEqualTo(roundId)
+          .findAll();
+
+      if (priorWinningRounds.isNotEmpty) {
+        throw StateError('Thành viên này đã lấy một kỳ khác trong cùng Phường.');
+      }
+
+      final calculation = FinancialCalculator.calculate(
+        memberCount: memberIds.length,
+        baseAmount: pool.baseAmount,
+        bidAmount: bidAmount,
+      );
+
+      round
+        ..winnerId = winnerId
+        ..bidAmount = calculation.bidAmount
+        ..payoutAmount = calculation.payoutAmount
+        ..contributionAmount = calculation.contributionAmount
+        ..netReceiveAmount = calculation.netReceiveAmount;
     }
-
-    final priorWinningRounds = await _isar!.rounds
-        .filter()
-        .poolIdEqualTo(pool.id)
-        .winnerIdEqualTo(winnerId)
-        .not()
-        .idEqualTo(roundId)
-        .findAll();
-
-    if (priorWinningRounds.isNotEmpty) {
-      throw StateError('Thành viên này đã lấy một kỳ khác trong cùng Phường.');
-    }
-
-    final calculation = FinancialCalculator.calculate(
-      memberCount: memberIds.length,
-      baseAmount: pool.baseAmount,
-      bidAmount: bidAmount,
-    );
-
-    round
-      ..winnerId = winnerId
-      ..bidAmount = calculation.bidAmount
-      ..payoutAmount = calculation.payoutAmount
-      ..contributionAmount = calculation.contributionAmount
-      ..netReceiveAmount = calculation.netReceiveAmount;
 
     await _isar!.writeTxn(() async {
       await _isar!.rounds.put(round);

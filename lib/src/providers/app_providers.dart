@@ -66,6 +66,13 @@ final roundsProvider = FutureProvider<List<Round>>((ref) async {
   return rounds.where((round) => round.roundNumber.toString().contains(query) || round.bidAmount.toString().contains(query)).toList(growable: false);
 });
 
+final winnerPaidRoundsProvider = FutureProvider<Set<int>>((ref) async {
+  final repository = await ref.watch(appRepositoryProvider.future);
+  final poolId = ref.watch(selectedPoolIdProvider);
+  if (poolId == null) return <int>{};
+  return repository.getWinnerPaidRoundIds(poolId);
+});
+
 final statementProvider = FutureProvider<List<UserMonthlyStatement>>((ref) async {
   final repository = await ref.watch(appRepositoryProvider.future);
   final filter = ref.watch(statementMonthProvider);

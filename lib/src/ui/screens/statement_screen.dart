@@ -306,10 +306,24 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                                         Icon(Icons.check_rounded, size: 10, color: Colors.green),
                                                         SizedBox(width: 2),
                                                         Text(
-                                                          'Đã xong',
+                                                          'Xong',
                                                           style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.green),
                                                         ),
                                                       ],
+                                                    ),
+                                                  ),
+                                                )
+                                              else if (row.remainingBalance != 0)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(top: 4),
+                                                  child: Text(
+                                                    row.remainingBalance > 0 
+                                                        ? 'Chưa giao: ${formatMoney(row.remainingBalance)}' 
+                                                        : 'Nợ: ${formatMoney(row.remainingBalance.abs())}',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: row.remainingBalance > 0 ? Colors.blue : Colors.orange,
                                                     ),
                                                   ),
                                                 ),
@@ -732,13 +746,8 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
     }
   }
 
-  void _openStatementDetail(BuildContext context, UserMonthlyStatement row) {
-    final localPaidState = {
-      for (final breakdown in row.breakdowns)
-        breakdown.poolId: breakdown.isPaid,
-    };
-    final selectedYear = ref.read(statementSelectedYearProvider);
-    final selectedMonth = ref.read(statementSelectedMonthProvider);
+  void _openStatementDetail(BuildContext context, UserMonthlyStatement initialRow) {
+    final userId = initialRow.userId;
 
     showModalBottomSheet<void>(
       context: context,
@@ -750,8 +759,15 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
           minChildSize: 0.5,
           maxChildSize: 1.0,
           builder: (context, scrollController) {
-            return StatefulBuilder(
-              builder: (context, setState) {
+            return Consumer(
+              builder: (context, ref, _) {
+                final statementAsync = ref.watch(statementProvider);
+                final statements = statementAsync.value;
+                final row = statements?.firstWhere(
+                  (s) => s.userId == userId,
+                  orElse: () => initialRow,
+                ) ?? initialRow;
+
                 return Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
@@ -789,143 +805,170 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                 ),
                               ],
                             ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                            Row(
                               children: [
-                                Text(
-                                  formatMoney(row.netBalance.abs()),
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        color: row.netBalance >= 0
-                                            ? Colors.green
-                                            : Colors.red,
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      formatMoney(row.netBalance.abs()),
+                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            color: row.netBalance >= 0 ? Colors.green : Colors.red,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      row.netBalance >= 0 ? 'Tổng giao' : 'Tổng đóng',
+                                      style: TextStyle(
+                                        color: row.netBalance >= 0 ? Colors.green : Colors.red,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
                                       ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  row.netBalance >= 0
-                                      ? 'Tổng lĩnh'
-                                      : 'Tổng đóng',
-                                  style: TextStyle(
-                                    color: row.netBalance >= 0
-                                        ? Colors.green
-                                        : Colors.red,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
+                                const SizedBox(width: 24),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      formatMoney(row.remainingBalance.abs()),
+                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            color: row.remainingBalance >= 0 ? Colors.blue : Colors.orange,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      row.remainingBalance >= 0 ? 'Chưa giao' : 'Tổng nợ',
+                                      style: TextStyle(
+                                        color: row.remainingBalance >= 0 ? Colors.blue : Colors.orange,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ],
                         ),
                       ),
+                      if (statementAsync.isLoading)
+                        const LinearProgressIndicator(minHeight: 2),
                       const SizedBox(height: 20),
                       Expanded(
                         child: ListView.builder(
                           controller: scrollController,
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                           itemCount: row.breakdowns.length,
                           itemBuilder: (context, index) {
                             final breakdown = row.breakdowns[index];
-                            final roundText = breakdown.roundNumbers.isNotEmpty
-                                ? ' - Kỳ ${breakdown.roundNumbers.join(', ')}'
-                                : '';
                             final isReceive = breakdown.netBalance >= 0;
-                            final isPaid =
-                                localPaidState[breakdown.poolId] ?? false;
 
                             return Card(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              child: ListTile(
-                                leading: Checkbox(
-                                  value: isPaid,
-                                  onChanged: (value) async {
-                                    if (value == null) return;
-
-                                    final confirm = await showConfirmDialog(
-                                      context,
-                                      'Xác nhận cập nhật',
-                                      'Bạn có chắc chắn muốn cập nhật trạng thái thanh toán?',
-                                    );
-                                    if (!confirm) return;
-
-                                    setState(
-                                      () => localPaidState[breakdown.poolId] =
-                                          value,
-                                    );
-                                    final repository = await ref.read(
-                                      appRepositoryProvider.future,
-                                    );
-                                    for (final roundId in breakdown.roundIds) {
-                                      await repository.setPaymentStatus(
-                                        userId: row.userId,
-                                        roundId: roundId,
-                                        isPaid: value,
-                                      );
-                                    }
-                                    refreshAll(ref);
-                                  },
+                                margin: const EdgeInsets.only(bottom: 12),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(
+                                    color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                                  ),
                                 ),
-                                title: breakdown.roundDates.isNotEmpty
-                                    ? Text(
-                                        'Âm: ${formatLunarDate(breakdown.roundDates.first)}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 18,
-                                          color: Theme.of(context).colorScheme.primary,
-                                        ),
-                                      )
-                                    : Text(
-                                        '${breakdown.poolName}$roundText',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 4.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${breakdown.poolName}$roundText',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            isReceive ? 'Lĩnh' : 'Đóng',
-                                            style: TextStyle(
-                                              color: isReceive
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
+                                child: InkWell(
+                                  onTap: () => _openSettlementDialog(context, userId, breakdown),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    breakdown.poolName,
+                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Row(
+                                                    children: [
+                                                      Text(
+                                                        'Tháng ${breakdown.roundNumbers.join(', ')}',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                        ),
+                                                      ),
+                                                      if (breakdown.remainingBalance != 0) ...[
+                                                        const SizedBox(width: 8),
+                                                        Text(
+                                                          breakdown.remainingBalance > 0 ? 'Chưa giao: ${formatMoney(breakdown.remainingBalance)}' : 'Nợ: ${formatMoney(breakdown.remainingBalance.abs())}',
+                                                          style: TextStyle(
+                                                            fontSize: 11,
+                                                            color: breakdown.remainingBalance > 0 ? Colors.blue : Colors.orange,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                          ),
-
-                                        ],
-                                      ),
-                                    ],
+                                            if (breakdown.isPaid)
+                                              const Icon(Icons.check_circle_rounded, color: Colors.green)
+                                            else
+                                              const Icon(Icons.pending_actions_rounded, color: Colors.orange),
+                                          ],
+                                        ),
+                                        const Divider(height: 24),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  isReceive ? 'Giao' : 'Đóng',
+                                                  style: TextStyle(
+                                                    color: isReceive
+                                                        ? Colors.green
+                                                        : Colors.red,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  formatMoney(breakdown.netBalance.abs()),
+                                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                                ),
+                                              ],
+                                            ),
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  'Thực tế: ${formatMoney(breakdown.actualAmount.abs())}',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 15,
+                                                    color: isReceive
+                                                        ? Colors.green
+                                                        : Colors.red,
+                                                  ),
+                                                ),
+                                                Icon(Icons.chevron_right_rounded, size: 16, color: Theme.of(context).colorScheme.outlineVariant),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                                trailing: Text(
-                                  formatMoney(breakdown.netBalance.abs()),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
-                                    color: isReceive
-                                        ? Colors.green
-                                        : Colors.red,
-                                  ),
-                                ),
-                              ),
                             );
                           },
                         ),
@@ -939,6 +982,191 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
         );
       },
     );
+  }
+
+  Future<void> _openSettlementDialog(
+    BuildContext context,
+    int userId,
+    PoolStatementBreakdown breakdown,
+  ) async {
+    final cs = Theme.of(context).colorScheme;
+    final isReceive = breakdown.netBalance >= 0;
+    
+    final expectedAmount = breakdown.netBalance.abs();
+    final currentActual = breakdown.actualAmount.abs();
+    final initialRemaining = breakdown.remainingBalance;
+
+    final amountController = TextEditingController();
+    final noteController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(isReceive ? 'Thanh toán Giao' : 'Thanh toán Đóng'),
+        content: StatefulBuilder(
+          builder: (context, setDialogState) {
+            final rawInput = parseMoney(amountController.text);
+            final newAmount = isReceive ? rawInput : -rawInput;
+            final newRemaining = initialRemaining - newAmount;
+            
+            final maxPossible = initialRemaining.abs();
+            final isOverLimit = rawInput > maxPossible;
+
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    breakdown.poolName,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Dự kiến: ${formatMoney(expectedAmount)}',
+                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                      ),
+                      Text(
+                        'Đã trả: ${formatMoney(currentActual)}',
+                        style: TextStyle(color: Colors.green.shade700, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  if (breakdown.history.isNotEmpty) ...[
+                    const Text(
+                      'Lịch sử thanh toán:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    ...breakdown.history.map((e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                formatMoney(e.amount.abs()),
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                              ),
+                              Text(
+                                formatLunarDate(e.date),
+                                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
+                              ),
+                            ],
+                          ),
+                          if (e.note != null && e.note!.isNotEmpty)
+                            Expanded(
+                              child: Text(
+                                e.note!,
+                                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11, fontStyle: FontStyle.italic),
+                                textAlign: TextAlign.right,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                      ),
+                    )),
+                    const Divider(height: 24),
+                  ],
+                  TextField(
+                    controller: amountController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: isReceive ? 'Số tiền GIAO THÊM' : 'Số tiền ĐÓNG THÊM',
+                      prefixText: '₫ ',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      errorText: isOverLimit ? 'Vượt quá số tiền còn lại (${formatMoney(maxPossible)})' : null,
+                      helperText: 'Nhập số tiền thực tế giao dịch lần này',
+                    ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [CurrencyInputFormatter()],
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: newRemaining >= 0 ? Colors.blue.withValues(alpha: 0.05) : Colors.orange.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: newRemaining >= 0 ? Colors.blue.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          newRemaining >= 0 ? 'Chưa giao sau khi lưu:' : 'Nợ sau khi lưu:',
+                          style: TextStyle(fontWeight: FontWeight.w600, color: newRemaining >= 0 ? Colors.blue : Colors.orange),
+                        ),
+                        Text(
+                          formatMoney(newRemaining.abs()),
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: newRemaining >= 0 ? Colors.blue : Colors.orange),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: noteController,
+                    decoration: InputDecoration(
+                      labelText: 'Ghi chú cho lần này',
+                      hintText: 'Ví dụ: Trả qua bank, Nợ đến tháng sau...',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final rawInput = parseMoney(amountController.text);
+              final maxPossible = initialRemaining.abs();
+              if (rawInput == 0 || rawInput > maxPossible) return;
+              
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('Xác nhận & Lưu'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      final rawAmount = parseMoney(amountController.text);
+      final amountToAdd = isReceive ? rawAmount : -rawAmount;
+      final note = noteController.text.trim();
+      
+      final newRemaining = initialRemaining - amountToAdd;
+      final isPaid = newRemaining == 0;
+
+      final repository = await ref.read(appRepositoryProvider.future);
+      
+      for (int i = 0; i < breakdown.roundIds.length; i++) {
+        final roundId = breakdown.roundIds[i];
+        await repository.setPaymentStatus(
+          userId: userId,
+          roundId: roundId,
+          isPaid: isPaid,
+          amountToAdd: (i == 0 && rawAmount != 0) ? amountToAdd : null,
+          note: (i == 0 && note.isNotEmpty) ? note : null,
+        );
+      }
+      
+      refreshAll(ref);
+    }
   }
 }
 

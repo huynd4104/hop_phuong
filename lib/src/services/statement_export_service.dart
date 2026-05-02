@@ -22,14 +22,14 @@ class StatementExportService {
       TextCellValue('Người dùng'),
       TextCellValue('Điện thoại'),
       TextCellValue('Tổng đóng'),
-      TextCellValue('Tổng lĩnh'),
+      TextCellValue('Tổng giao'),
       TextCellValue('Cân đối'),
     ]);
     breakdownSheet.appendRow(<CellValue?>[
       TextCellValue('Người dùng'),
       TextCellValue('Phường'),
       TextCellValue('Đóng vào'),
-      TextCellValue('Thực lĩnh'),
+      TextCellValue('Thực giao'),
       TextCellValue('Cân đối'),
     ]);
 

@@ -11,6 +11,15 @@ String formatMoney(int amount) => currencyFormat.format(amount);
 
 String formatSimpleMoney(int amount) => _simpleCurrencyFormat.format(amount);
 
+String formatMoneyRaw(int amount) => _simpleCurrencyFormat.format(amount);
+
+int parseMoney(String text) {
+  if (text.isEmpty) return 0;
+  final cleanText = text.replaceAll(RegExp(r'[^0-9]'), '');
+  if (cleanText.isEmpty) return 0;
+  return int.parse(cleanText);
+}
+
 class CurrencyInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {

@@ -855,13 +855,26 @@ class AppRepository {
     required int userId,
     required int roundId,
     required bool isPaid,
+    int? amountToAdd,
+    String? note,
   }) async {
     if (kIsWeb) {
       final index = _mockPaymentStatuses.indexWhere(
         (ps) => ps.userId == userId && ps.roundId == roundId,
       );
+      final entry = PaymentEntry(
+        amount: amountToAdd,
+        date: DateTime.now(),
+        note: note,
+      );
+
       if (index >= 0) {
-        _mockPaymentStatuses[index].isPaid = isPaid;
+        final ps = _mockPaymentStatuses[index];
+        ps.isPaid = isPaid;
+        if (amountToAdd != null) {
+          ps.history ??= [];
+          ps.history!.add(entry);
+        }
       } else {
         _mockPaymentStatuses.add(
           PaymentStatus(
@@ -869,6 +882,7 @@ class AppRepository {
             userId: userId,
             roundId: roundId,
             isPaid: isPaid,
+            history: amountToAdd != null ? [entry] : [],
           ),
         );
       }
@@ -885,6 +899,12 @@ class AppRepository {
         existing ??
         PaymentStatus(userId: userId, roundId: roundId, isPaid: isPaid);
     status.isPaid = isPaid;
+    if (amountToAdd != null) {
+      status.history ??= [];
+      status.history!.add(
+        PaymentEntry(amount: amountToAdd, date: DateTime.now(), note: note),
+      );
+    }
     await _isar!.writeTxn(() async {
       await _isar!.paymentStatus.put(status);
     });
@@ -917,7 +937,7 @@ class AppRepository {
       paymentStatuses = await _isar!.paymentStatus.where().anyId().findAll();
     }
     final paymentMap = {
-      for (final ps in paymentStatuses) '${ps.userId}_${ps.roundId}': ps.isPaid,
+      for (final ps in paymentStatuses) '${ps.userId}_${ps.roundId}': ps,
     };
 
     final poolsById = {for (final pool in pools) pool.id: pool};
@@ -957,20 +977,45 @@ class AppRepository {
         final roundIds = <int>[];
         final roundDates = <DateTime>[];
         bool isPaid = false;
+        int actualAmount = 0;
+        final notes = <String>[];
 
+        final historyEntries = <StatementPaymentEntry>[];
         for (final round in monthlyRounds) {
+          final ps = paymentMap['${user.id}_${round.id}'];
+          int expectedForRound = 0;
           if (round.winnerId == user.id) {
-            receiveAmount += round.netReceiveAmount;
+            expectedForRound = round.netReceiveAmount;
+            receiveAmount += expectedForRound;
             roundNumbers.add(round.roundNumber);
             roundIds.add(round.id);
             roundDates.add(round.date);
-            if (paymentMap['${user.id}_${round.id}'] == true) isPaid = true;
           } else if (round.winnerId != null) {
+            expectedForRound = -round.contributionAmount;
             payAmount += round.contributionAmount;
             roundNumbers.add(round.roundNumber);
             roundIds.add(round.id);
             roundDates.add(round.date);
-            if (paymentMap['${user.id}_${round.id}'] == true) isPaid = true;
+          }
+
+          if (ps != null) {
+            if (ps.isPaid) isPaid = true;
+            actualAmount += ps.totalActualAmount;
+            if (ps.history != null) {
+              for (final entry in ps.history!) {
+                if (entry.note != null && entry.note!.trim().isNotEmpty) {
+                  notes.add(entry.note!.trim());
+                }
+                historyEntries.add(StatementPaymentEntry(
+                  amount: entry.amount ?? 0,
+                  date: entry.date ?? DateTime.now(),
+                  note: entry.note,
+                ));
+              }
+            }
+            if (actualAmount == 0 && ps.isPaid) {
+              actualAmount = expectedForRound;
+            }
           }
         }
 
@@ -987,9 +1032,11 @@ class AppRepository {
           roundNumbers: roundNumbers,
           roundIds: roundIds,
           roundDates: roundDates,
-          isPaid: isPaid,
           payAmount: payAmount,
           receiveAmount: receiveAmount,
+          actualAmount: actualAmount,
+          notes: notes,
+          history: historyEntries,
         );
       }
 
@@ -1085,7 +1132,7 @@ class AppRepository {
       paymentStatuses = await _isar!.paymentStatus.where().anyId().findAll();
     }
     final paymentMap = {
-      for (final ps in paymentStatuses) '${ps.userId}_${ps.roundId}': ps.isPaid,
+      for (final ps in paymentStatuses) '${ps.userId}_${ps.roundId}': ps,
     };
 
     final poolsById = {for (final pool in pools) pool.id: pool};
@@ -1123,24 +1170,47 @@ class AppRepository {
         final roundIdsForPool = <int>[];
         final roundDates = <DateTime>[];
         bool isPaid = false;
+        int actualAmount = 0;
+        final notes = <String>[];
 
+        final historyEntries = <StatementPaymentEntry>[];
         for (final round in selectedRounds) {
+          final ps = paymentMap['${user.id}_${round.id}'];
+          int expectedForRound = 0;
           if (round.winnerId == user.id) {
-            receiveAmount += round.netReceiveAmount;
+            expectedForRound = round.netReceiveAmount;
+            receiveAmount += expectedForRound;
             roundNumbers.add(round.roundNumber);
             roundIdsForPool.add(round.id);
             roundDates.add(round.date);
-            if (paymentMap['${user.id}_${round.id}'] == true) isPaid = true;
           } else if (round.winnerId != null) {
+            expectedForRound = -round.contributionAmount;
             payAmount += round.contributionAmount;
             roundNumbers.add(round.roundNumber);
             roundIdsForPool.add(round.id);
             roundDates.add(round.date);
-            if (paymentMap['${user.id}_${round.id}'] == true) isPaid = true;
+          }
+
+          if (ps != null) {
+            if (ps.isPaid) isPaid = true;
+            actualAmount += ps.totalActualAmount;
+            if (ps.history != null) {
+              for (final entry in ps.history!) {
+                if (entry.note != null && entry.note!.trim().isNotEmpty) {
+                  notes.add(entry.note!.trim());
+                }
+                historyEntries.add(StatementPaymentEntry(
+                  amount: entry.amount ?? 0,
+                  date: entry.date ?? DateTime.now(),
+                  note: entry.note,
+                ));
+              }
+            }
+            if (actualAmount == 0 && ps.isPaid) {
+              actualAmount = expectedForRound;
+            }
           }
         }
-
-        if (payAmount == 0 && receiveAmount == 0) continue;
 
         totalPay += payAmount;
         totalReceive += receiveAmount;
@@ -1151,9 +1221,11 @@ class AppRepository {
           roundNumbers: roundNumbers,
           roundIds: roundIdsForPool,
           roundDates: roundDates,
-          isPaid: isPaid,
           payAmount: payAmount,
           receiveAmount: receiveAmount,
+          actualAmount: actualAmount,
+          notes: notes,
+          history: historyEntries,
         );
       }
 
@@ -1204,7 +1276,7 @@ class AppRepository {
       paymentStatuses = await _isar!.paymentStatus.where().anyId().findAll();
     }
     final paymentMap = {
-      for (final ps in paymentStatuses) '${ps.userId}_${ps.roundId}': ps.isPaid,
+      for (final ps in paymentStatuses) '${ps.userId}_${ps.roundId}': ps,
     };
 
     final poolsById = {for (final pool in pools) pool.id: pool};
@@ -1242,24 +1314,49 @@ class AppRepository {
 
         int payAmount = 0;
         int receiveAmount = 0;
+        int actualAmount = 0;
+        final notes = <String>[];
         final roundNumbers = <int>[];
         final roundIds = <int>[];
         final roundDates = <DateTime>[];
         bool isPaid = false;
 
+        final historyEntries = <StatementPaymentEntry>[];
         for (final round in periodRounds) {
+          final ps = paymentMap['${user.id}_${round.id}'];
+          int expectedForRound = 0;
           if (round.winnerId == user.id) {
-            receiveAmount += round.netReceiveAmount;
+            expectedForRound = round.netReceiveAmount;
+            receiveAmount += expectedForRound;
             roundNumbers.add(round.roundNumber);
             roundIds.add(round.id);
             roundDates.add(round.date);
-            if (paymentMap['${user.id}_${round.id}'] == true) isPaid = true;
           } else if (round.winnerId != null) {
+            expectedForRound = -round.contributionAmount;
             payAmount += round.contributionAmount;
             roundNumbers.add(round.roundNumber);
             roundIds.add(round.id);
             roundDates.add(round.date);
-            if (paymentMap['${user.id}_${round.id}'] == true) isPaid = true;
+          }
+
+          if (ps != null) {
+            if (ps.isPaid) isPaid = true;
+            actualAmount += ps.totalActualAmount;
+            if (ps.history != null) {
+              for (final entry in ps.history!) {
+                if (entry.note != null && entry.note!.trim().isNotEmpty) {
+                  notes.add(entry.note!.trim());
+                }
+                historyEntries.add(StatementPaymentEntry(
+                  amount: entry.amount ?? 0,
+                  date: entry.date ?? DateTime.now(),
+                  note: entry.note,
+                ));
+              }
+            }
+            if (actualAmount == 0 && ps.isPaid) {
+              actualAmount = expectedForRound;
+            }
           }
         }
 
@@ -1276,9 +1373,11 @@ class AppRepository {
           roundNumbers: roundNumbers,
           roundIds: roundIds,
           roundDates: roundDates,
-          isPaid: isPaid,
           payAmount: payAmount,
           receiveAmount: receiveAmount,
+          actualAmount: actualAmount,
+          notes: notes,
+          history: historyEntries,
         );
       }
 

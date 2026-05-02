@@ -73,8 +73,17 @@ Future<void> openPaymentsSheet(
     showDragHandle: true,
     isScrollControlled: true,
     builder: (sheetContext) {
+      String searchQuery = '';
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final filteredMembers = members.where((m) {
+            if (searchQuery.isEmpty) return true;
+            final query = removeDiacritics(searchQuery.toLowerCase());
+            final name = removeDiacritics(m.name.toLowerCase());
+            final phone = m.phone.toLowerCase();
+            return name.contains(query) || phone.contains(query);
+          }).toList();
+
           return Padding(
             padding: EdgeInsets.only(
               left: 20,
@@ -92,46 +101,85 @@ Future<void> openPaymentsSheet(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 4),
-                Text(pool.name),
                 const SizedBox(height: 16),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 440),
-                  child: ListView.separated(
-                    primary: false,
-                    shrinkWrap: true,
-                    itemCount: members.length,
-                    separatorBuilder: (context, index) =>
-                        const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final member = members[index];
-                      final paid = statusMap[member.id] ?? false;
-                      return CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: paid,
-                        onChanged: (checked) async {
-                          final confirm = await showConfirmDialog(
-                            context,
-                            'Xác nhận cập nhật',
-                            'Bạn có chắc chắn muốn cập nhật trạng thái thanh toán?',
-                          );
-                          if (!confirm) return;
-
-                          await repository.setPaymentStatus(
-                            userId: member.id,
-                            roundId: round.id,
-                            isPaid: checked ?? false,
-                          );
-                          setSheetState(() {
-                            statusMap[member.id] = checked ?? false;
-                          });
-                          ref.invalidate(roundsProvider);
-                        },
-                        title: Text(member.name),
-                        subtitle: Text(member.phone),
-                      );
-                    },
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Tìm theo tên hoặc số điện thoại…',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   ),
+                  onChanged: (value) {
+                    setSheetState(() {
+                      searchQuery = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+                  ),
+                  child: filteredMembers.isEmpty
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          child: Center(
+                            child: Text('Không tìm thấy thành viên nào'),
+                          ),
+                        )
+                      : ListView.separated(
+                          primary: false,
+                          shrinkWrap: true,
+                          itemCount: filteredMembers.length,
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final member = filteredMembers[index];
+                            final paid = statusMap[member.id] ?? false;
+                            return CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              value: paid,
+                              onChanged: (checked) async {
+                                final confirm = await showConfirmDialog(
+                                  context,
+                                  'Xác nhận cập nhật',
+                                  'Bạn có chắc chắn muốn cập nhật trạng thái thanh toán cho "${member.name}"?',
+                                );
+                                if (!confirm) return;
+
+                                await repository.setPaymentStatus(
+                                  userId: member.id,
+                                  roundId: round.id,
+                                  isPaid: checked ?? false,
+                                );
+                                setSheetState(() {
+                                  statusMap[member.id] = checked ?? false;
+                                });
+                                ref.invalidate(roundsProvider);
+                              },
+                              title: Text(
+                                member.name,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Row(
+                                children: [
+                                  Icon(
+                                    Icons.phone_outlined,
+                                    size: 14,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(member.phone),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
@@ -142,7 +190,12 @@ Future<void> openPaymentsSheet(
   );
 }
 
-Future<DateTime?> pickMonthYear(BuildContext context, DateTime initial) async {
+Future<DateTime?> pickMonthYear(
+  BuildContext context,
+  DateTime initial, {
+  bool showDay = false,
+}) async {
+  var selectedDay = initial.day;
   var selectedMonth = initial.month;
   var selectedYear = initial.year;
 
@@ -150,7 +203,7 @@ Future<DateTime?> pickMonthYear(BuildContext context, DateTime initial) async {
     context: context,
     builder: (dialogContext) {
       return AlertDialog(
-        title: const Text('Chọn tháng và năm âm lịch'),
+        title: Text(showDay ? 'Chọn ngày âm lịch' : 'Chọn tháng âm lịch'),
         content: StatefulBuilder(
           builder: (context, setState) {
             return SizedBox(
@@ -158,8 +211,24 @@ Future<DateTime?> pickMonthYear(BuildContext context, DateTime initial) async {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (showDay) ...[
+                    DropdownButtonFormField<int>(
+                      value: selectedDay,
+                      decoration: const InputDecoration(labelText: 'Ngày'),
+                      items: [
+                        for (var day = 1; day <= 30; day++)
+                          DropdownMenuItem<int>(
+                            value: day,
+                            child: Text('Ngày $day'),
+                          ),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => selectedDay = value ?? selectedDay),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   DropdownButtonFormField<int>(
-                    initialValue: selectedMonth,
+                    value: selectedMonth,
                     decoration: const InputDecoration(labelText: 'Tháng'),
                     items: [
                       for (var month = 1; month <= 12; month++)
@@ -173,7 +242,7 @@ Future<DateTime?> pickMonthYear(BuildContext context, DateTime initial) async {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<int>(
-                    initialValue: selectedYear,
+                    value: selectedYear,
                     decoration: const InputDecoration(labelText: 'Năm'),
                     items: [
                       for (
@@ -202,7 +271,72 @@ Future<DateTime?> pickMonthYear(BuildContext context, DateTime initial) async {
           FilledButton(
             onPressed: () => Navigator.of(
               dialogContext,
-            ).pop(DateTime(selectedYear, selectedMonth)),
+            ).pop(DateTime(selectedYear, selectedMonth, selectedDay)),
+            child: const Text('Áp dụng'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<int?> pickLunarDay(BuildContext context, int? initial) async {
+  var selectedDay = initial ?? 15;
+
+  return showDialog<int>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Chọn ngày âm lịch họp Phường'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return SizedBox(
+              width: 320,
+              child: GridView.builder(
+                shrinkWrap: true,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 5,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                ),
+                itemCount: 30,
+                itemBuilder: (context, index) {
+                  final day = index + 1;
+                  final isSelected = day == selectedDay;
+                  final cs = Theme.of(context).colorScheme;
+                  return InkWell(
+                    onTap: () => setState(() => selectedDay = day),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected ? cs.primary : cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected ? cs.primary : cs.outlineVariant,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$day',
+                        style: TextStyle(
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? cs.onPrimary : cs.onSurface,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(selectedDay),
             child: const Text('Áp dụng'),
           ),
         ],

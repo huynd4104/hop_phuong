@@ -183,7 +183,13 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
                                                     Text(row.userName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                                                    Text(row.phone, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                                                    Row(
+                                                      children: [
+                                                        Icon(Icons.phone_outlined, size: 13, color: cs.onSurfaceVariant),
+                                                        const SizedBox(width: 4),
+                                                        Text(row.phone, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                                                      ],
+                                                    ),
                                                   ],
                                                 ),
                                               ),

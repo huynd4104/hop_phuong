@@ -127,11 +127,8 @@ class PoolDialogState extends State<PoolDialog> {
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24), // Tăng padding top từ 20 mặc định lên để an toàn hơn
       content: SizedBox(
         width: 560,
-        child: Scrollbar(
+        child: SingleChildScrollView(
           controller: _mainScrollController,
-          thumbVisibility: true,
-          child: SingleChildScrollView(
-            controller: _mainScrollController,
             child: SafeArea(
               bottom: false, // Chỉ cần quan tâm tới top khi bị đẩy lên
               child: Form(
@@ -322,7 +319,6 @@ class PoolDialogState extends State<PoolDialog> {
             ),
           ),
         ),
-      ),
       actions: [
         TextButton(onPressed: _saving ? null : () => Navigator.of(context).pop(), child: const Text('Hủy')),
         FilledButton(

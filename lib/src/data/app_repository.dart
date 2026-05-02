@@ -218,7 +218,7 @@ class AppRepository {
     });
   }
 
-  Future<List<Pool>> getPools({String query = ''}) async {
+  Future<List<Pool>> getPools({String query = '', int? meetingDay}) async {
     List<Pool> pools;
     if (kIsWeb) {
       pools = List.from(_mockPools);
@@ -226,13 +226,20 @@ class AppRepository {
       pools = await _isar!.pools.where().anyId().findAll();
     }
     
-    pools.sort(_comparePools);
-    if (query.trim().isEmpty) {
-      return pools;
+    // 1. Filter by meetingDay if provided
+    if (meetingDay != null) {
+      pools = pools.where((p) => p.meetingDay == meetingDay).toList();
     }
 
-    final normalized = query.toLowerCase();
-    return pools.where((pool) => pool.name.toLowerCase().contains(normalized)).toList(growable: false);
+    // 2. Filter by search query if provided
+    if (query.trim().isNotEmpty) {
+      final normalized = query.toLowerCase();
+      pools = pools.where((pool) => pool.name.toLowerCase().contains(normalized)).toList();
+    }
+
+    // 3. Sort final result
+    pools.sort(_comparePools);
+    return pools;
   }
 
   Future<Pool?> getPoolById(int id) async {

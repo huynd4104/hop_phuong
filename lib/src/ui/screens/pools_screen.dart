@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:lunar_calendar/lunar_calendar.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -39,6 +40,7 @@ import 'package:hop_phuong/src/ui/widgets/date_info_card.dart';
 import 'package:hop_phuong/src/ui/dialogs/user_dialog.dart';
 import 'package:hop_phuong/src/ui/dialogs/pool_dialog.dart';
 import 'package:hop_phuong/src/ui/dialogs/round_dialog.dart';
+import 'package:hop_phuong/src/ui/dialogs/pool_members_dialog.dart';
 import 'package:hop_phuong/src/models/statement_totals.dart';
 
 class PoolsScreen extends ConsumerStatefulWidget {
@@ -50,7 +52,6 @@ class PoolsScreen extends ConsumerStatefulWidget {
 
 class _PoolsScreenState extends ConsumerState<PoolsScreen> {
   final _scrollController = ScrollController();
-  final _expandedPools = <int>{};
 
   @override
   void dispose() {
@@ -62,6 +63,7 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
   Widget build(BuildContext context) {
     final poolsAsync = ref.watch(poolsProvider);
     final query = ref.watch(poolSearchProvider);
+    final filterDay = ref.watch(poolFilterDayProvider);
     final cs = Theme.of(context).colorScheme;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
@@ -91,16 +93,23 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
                       ref.read(poolSearchProvider.notifier).state = v,
                 ),
               ),
-              const SizedBox(width: 12),
-              ref
-                  .watch(appRepositoryProvider)
-                  .when(
-                    data: (repo) => FilledButton.icon(
-                      onPressed: () =>
-                          _openPoolDialog(context, ref, repository: repo),
-                      icon: const Icon(Icons.add_rounded, size: 18),
-                      label: Text('Tạo Phường'),
-                    ),
+              const SizedBox(width: 8),
+              _buildFilterButton(context, ref, filterDay),
+              const SizedBox(width: 8),
+              ref.watch(appRepositoryProvider).when(
+                    data: (repo) => isMobile
+                        ? IconButton.filled(
+                            onPressed: () =>
+                                _openPoolDialog(context, ref, repository: repo),
+                            icon: const Icon(Icons.add_rounded),
+                            tooltip: 'Tạo Phường',
+                          )
+                        : FilledButton.icon(
+                            onPressed: () =>
+                                _openPoolDialog(context, ref, repository: repo),
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: const Text('Tạo Phường'),
+                          ),
                     loading: () => const SizedBox.shrink(),
                     error: (_, __) => const SizedBox.shrink(),
                   ),
@@ -143,367 +152,334 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
                           final pool = pools[index];
                           return Card(
                             clipBehavior: Clip.antiAlias,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            child: Stack(
                               children: [
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    14,
-                                    8,
-                                    14,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        cs.primary.withValues(alpha: 0.08),
-                                        cs.tertiary.withValues(alpha: 0.04),
-                                      ],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          pool.name,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.fromLTRB(
+                                              16,
+                                              14,
+                                              8,
+                                              14,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  cs.primary
+                                                      .withValues(alpha: 0.08),
+                                                  cs.tertiary
+                                                      .withValues(alpha: 0.04),
+                                                ],
+                                                begin: Alignment.centerLeft,
+                                                end: Alignment.centerRight,
                                               ),
-                                        ),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Xem người Phường',
-                                        onPressed: () {
-                                          ref
-                                              .read(
-                                                selectedPoolIdProvider.notifier,
-                                              )
-                                              .state = pool
-                                              .id;
-                                          ref
-                                                  .read(
-                                                    selectedTabProvider
-                                                        .notifier,
-                                                  )
-                                                  .state =
-                                              2;
-                                        },
-                                        icon: Icon(
-                                          Icons.event_note_rounded,
-                                          color: cs.primary,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Sửa',
-                                        onPressed: () => _openPoolDialog(
-                                          context,
-                                          ref,
-                                          repository: repository,
-                                          pool: pool,
-                                        ),
-                                        icon: Icon(
-                                          Icons.edit_rounded,
-                                          color: cs.primary,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Xóa',
-                                        onPressed: () async {
-                                          final confirm = await showConfirmDialog(
-                                            context,
-                                            'Xóa Phường',
-                                            'Bạn có chắc chắn muốn xóa Phường "${pool.name}" không? Toàn bộ dữ liệu của Phường này sẽ bị xóa.',
-                                            isDestructive: true,
-                                          );
-                                          if (!confirm || !context.mounted)
-                                            return;
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    pool.name,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .titleMedium
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
+                                                  ),
+                                                ),
+                                                IconButton(
+                                                  tooltip: 'Xem người Phường',
+                                                  onPressed: () {
+                                                    ref
+                                                        .read(
+                                                          selectedPoolIdProvider
+                                                              .notifier,
+                                                        )
+                                                        .state = pool.id;
+                                                    ref
+                                                        .read(
+                                                          selectedTabProvider
+                                                              .notifier,
+                                                        )
+                                                        .state = 2;
+                                                  },
+                                                  icon: Icon(
+                                                    Icons.event_note_rounded,
+                                                    color: cs.primary,
+                                                  ),
+                                                ),
+                                                IconButton(
+                                                  tooltip: 'Sửa',
+                                                  onPressed: () =>
+                                                      _openPoolDialog(
+                                                    context,
+                                                    ref,
+                                                    repository: repository,
+                                                    pool: pool,
+                                                  ),
+                                                  icon: Icon(
+                                                    Icons.edit_rounded,
+                                                    color: cs.primary,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                                IconButton(
+                                                  tooltip: 'Xóa',
+                                                  onPressed: () async {
+                                                    final confirm =
+                                                        await showConfirmDialog(
+                                                      context,
+                                                      'Xóa Phường',
+                                                      'Bạn có chắc chắn muốn xóa Phường "${pool.name}" không? Toàn bộ dữ liệu của Phường này sẽ bị xóa.',
+                                                      isDestructive: true,
+                                                    );
+                                                    if (!confirm ||
+                                                        !context.mounted)
+                                                      return;
 
-                                          try {
-                                            await repository.deletePool(
-                                              pool.id,
-                                            );
-                                            if (ref.read(
-                                                  selectedPoolIdProvider,
-                                                ) ==
-                                                pool.id) {
-                                              ref
-                                                      .read(
-                                                        selectedPoolIdProvider
-                                                            .notifier,
-                                                      )
-                                                      .state =
-                                                  null;
-                                            }
-                                            refreshAll(ref);
-                                            if (context.mounted)
-                                              showSnackBar(
-                                                context,
-                                                'Đã xóa Phường',
-                                              );
-                                          } catch (e) {
-                                            if (context.mounted)
-                                              showSnackBar(
-                                                context,
-                                                e.toString(),
-                                                isError: true,
-                                              );
-                                          }
-                                        },
-                                        icon: Icon(
-                                          Icons.delete_rounded,
-                                          color: cs.error,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    12,
-                                    16,
-                                    16,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 6,
-                                        children: [
-                                          MiniChip(
-                                            icon: Icons.payments_outlined,
-                                            label:
-                                                'Gốc ${formatMoney(pool.baseAmount)}',
-                                          ),
-                                          MiniChip(
-                                            icon: Icons.repeat_rounded,
-                                            label: '${pool.totalRounds} người',
-                                          ),
-                                          MiniChip(
-                                            icon: Icons.calendar_today_rounded,
-                                            label:
-                                                'Ngày ${pool.meetingDay} âm lịch',
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Builder(
-                                        builder: (context) {
-                                          final dates = const LunarScheduleService().generateMeetingDates(
-                                            startDate: pool.startDate,
-                                            totalRounds: pool.totalRounds,
-                                            meetingDay: pool.meetingDay,
-                                          );
-                                          final endDate = dates.isNotEmpty ? dates.last : pool.startDate;
-                                          return Column(
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Icon(Icons.calendar_today_outlined, size: 13, color: cs.onSurfaceVariant),
-                                                  const SizedBox(width: 6),
-                                                  Expanded(
-                                                    child: Text(
-                                                      'Âm: ${formatLunarDate(pool.startDate)} → ${formatLunarDate(endDate)}',
-                                                      style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-                                                    ),
+                                                    try {
+                                                      await repository
+                                                          .deletePool(
+                                                        pool.id,
+                                                      );
+                                                      if (ref.read(
+                                                              selectedPoolIdProvider) ==
+                                                          pool.id) {
+                                                        ref
+                                                            .read(
+                                                              selectedPoolIdProvider
+                                                                  .notifier,
+                                                            )
+                                                            .state = null;
+                                                      }
+                                                      refreshAll(ref);
+                                                      if (context.mounted)
+                                                        showSnackBar(
+                                                          context,
+                                                          'Đã xóa Phường',
+                                                        );
+                                                    } catch (e) {
+                                                      if (context.mounted)
+                                                        showSnackBar(
+                                                          context,
+                                                          e.toString(),
+                                                          isError: true,
+                                                        );
+                                                    }
+                                                  },
+                                                  icon: Icon(
+                                                    Icons.delete_rounded,
+                                                    color: cs.error,
+                                                    size: 20,
                                                   ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Row(
-                                                children: [
-                                                  Icon(Icons.calendar_month_outlined, size: 13, color: cs.onSurfaceVariant),
-                                                  const SizedBox(width: 6),
-                                                  Expanded(
-                                                    child: Text(
-                                                      'Dương: ~${formatSolarDate(pool.startDate)} → ~${formatSolarDate(endDate)}',
-                                                      style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.payments_rounded,
-                                            size: 13,
-                                            color: cs.primary,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            'Tổng: ${formatMoney(pool.baseAmount * pool.totalRounds)}',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: cs.primary,
-                                              fontWeight: FontWeight.w600,
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                          const Spacer(),
-                                          IconButton(
-                                            tooltip: 'Xem thành viên',
-                                            onPressed: () {
-                                              setState(() {
-                                                if (_expandedPools.contains(
-                                                  pool.id,
-                                                )) {
-                                                  _expandedPools.remove(
-                                                    pool.id,
-                                                  );
-                                                } else {
-                                                  _expandedPools.add(pool.id);
-                                                }
-                                              });
-                                            },
-                                            icon: Icon(
-                                              _expandedPools.contains(pool.id)
-                                                  ? Icons.expand_less
-                                                  : Icons.expand_more,
-                                              color: cs.onSurfaceVariant,
+                                          Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              16,
+                                              12,
+                                              16,
+                                              16,
                                             ),
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                          ),
-                                        ],
-                                      ),
-                                      if (_expandedPools.contains(pool.id)) ...[
-                                        const Divider(height: 24),
-                                        Text(
-                                          'Danh sách thành viên',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: cs.primary,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        FutureBuilder<List<dynamic>>(
-                                          future: Future.wait([
-                                            repository.getPoolMembers(pool.id),
-                                            repository.getWinnerIdsForPool(pool.id),
-                                          ]),
-                                          builder: (context, snapshot) {
-                                            if (snapshot.connectionState ==
-                                                ConnectionState.waiting) {
-                                              return const Center(
-                                                child: Padding(
-                                                  padding: EdgeInsets.all(8.0),
-                                                  child:
-                                                      CircularProgressIndicator(),
-                                                ),
-                                              );
-                                            }
-                                            if (snapshot.hasError) {
-                                              return Text(
-                                                'Lỗi: ${snapshot.error}',
-                                                style: TextStyle(
-                                                  color: cs.error,
-                                                  fontSize: 13,
-                                                ),
-                                              );
-                                            }
-                                            final members = (snapshot.data?[0] as List<User>?) ?? [];
-                                            final winnerIds = (snapshot.data?[1] as Set<int>?) ?? {};
-                                            if (members.isEmpty) {
-                                              return Text(
-                                                'Chưa có thành viên nào',
-                                                style: TextStyle(
-                                                  color: cs.onSurfaceVariant,
-                                                  fontSize: 13,
-                                                ),
-                                              );
-                                            }
-                                            return SizedBox(
-                                              width: double.infinity,
-                                              child: SingleChildScrollView(
-                                                scrollDirection:
-                                                    Axis.horizontal,
-                                                child: DataTable(
-                                                  headingRowHeight: 40,
-                                                  dataRowMinHeight: 48,
-                                                  dataRowMaxHeight: 48,
-                                                  columnSpacing: 24,
-                                                  horizontalMargin: 0,
-                                                  columns: const [
-                                                    DataColumn(
-                                                      label: Text(
-                                                        'Tên thành viên',
-                                                        style: TextStyle(
-                                                          fontSize: 13,
-                                                        ),
-                                                      ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Wrap(
+                                                  spacing: 8,
+                                                  runSpacing: 6,
+                                                  children: [
+                                                    MiniChip(
+                                                      icon: Icons
+                                                          .payments_outlined,
+                                                      label:
+                                                          'Gốc ${formatMoney(pool.baseAmount)}',
                                                     ),
-                                                    DataColumn(
-                                                      label: Text(
-                                                        'Số điện thoại',
-                                                        style: TextStyle(
-                                                          fontSize: 13,
-                                                        ),
-                                                      ),
+                                                    MiniChip(
+                                                      icon: Icons
+                                                          .repeat_rounded,
+                                                      label:
+                                                          '${pool.totalRounds} người',
+                                                    ),
+                                                    MiniChip(
+                                                      icon: Icons
+                                                          .calendar_today_rounded,
+                                                      label:
+                                                          'Ngày ${pool.meetingDay} âm lịch',
                                                     ),
                                                   ],
-                                                  rows: members.map((m) {
-                                                     final hasWon = winnerIds.contains(m.id);
-                                                    return DataRow(
-                                                      cells: [
-                                                         DataCell(
-                                                           Row(
-                                                             mainAxisSize: MainAxisSize.min,
-                                                             children: [
-                                                               if (hasWon) ...[
-                                                                 const Icon(Icons.check_circle_rounded, color: Colors.green, size: 16),
-                                                                 const SizedBox(width: 6),
-                                                               ],
-                                                               Text(
-                                                                 m.name,
-                                                                 style: const TextStyle(
-                                                                   fontSize: 13,
-                                                                   fontWeight: FontWeight.w500,
-                                                                 ),
-                                                               ),
-                                                               if (m.isOwner) ...[
-                                                                 const SizedBox(width: 4),
-                                                                 const Icon(Icons.stars_rounded, color: Colors.amber, size: 14),
-                                                               ],
-                                                             ],
-                                                           ),
-                                                         ),
-                                                        DataCell(
-                                                          Text(
-                                                            m.phone,
-                                                            style: TextStyle(
-                                                              fontSize: 13,
-                                                              color: cs
-                                                                  .onSurfaceVariant,
+                                                ),
+                                                const SizedBox(height: 10),
+                                                Builder(
+                                                  builder: (context) {
+                                                    final dates =
+                                                        const LunarScheduleService()
+                                                            .generateMeetingDates(
+                                                      startDate: pool.startDate,
+                                                      totalRounds:
+                                                          pool.totalRounds,
+                                                      meetingDay:
+                                                          pool.meetingDay,
+                                                    );
+                                                    final endDate =
+                                                        dates.isNotEmpty
+                                                            ? dates.last
+                                                            : pool.startDate;
+                                                    return Column(
+                                                      children: [
+                                                        Row(
+                                                          children: [
+                                                            Icon(
+                                                                Icons
+                                                                    .calendar_today_outlined,
+                                                                size: 13,
+                                                                color: cs
+                                                                    .onSurfaceVariant),
+                                                            const SizedBox(
+                                                                width: 6),
+                                                            Expanded(
+                                                              child: Text(
+                                                                'Âm: ${formatLunarDate(pool.startDate)} → ${formatLunarDate(endDate)}',
+                                                                style: TextStyle(
+                                                                    fontSize:
+                                                                        13,
+                                                                    color: cs
+                                                                        .onSurfaceVariant),
+                                                              ),
                                                             ),
-                                                          ),
+                                                          ],
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 4),
+                                                        Row(
+                                                          children: [
+                                                            Icon(
+                                                                Icons
+                                                                    .calendar_month_outlined,
+                                                                size: 13,
+                                                                color: cs
+                                                                    .onSurfaceVariant),
+                                                            const SizedBox(
+                                                                width: 6),
+                                                            Expanded(
+                                                              child: Text(
+                                                                'Dương: ~${formatSolarDate(pool.startDate)} → ~${formatSolarDate(endDate)}',
+                                                                style: TextStyle(
+                                                                    fontSize:
+                                                                        12,
+                                                                    color: cs
+                                                                        .onSurfaceVariant),
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
                                                       ],
                                                     );
-                                                  }).toList(),
+                                                  },
                                                 ),
-                                              ),
-                                            );
-                                          },
+                                                const SizedBox(height: 6),
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.payments_rounded,
+                                                      size: 13,
+                                                      color: cs.primary,
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Text(
+                                                      'Tổng: ${formatMoney(pool.baseAmount * pool.totalRounds)}',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: cs.primary,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 60),
+                                  ],
+                                ),
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: InkWell(
+                                      onTap: () async {
+                                        final repo = repository;
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) =>
+                                              FutureBuilder<List<dynamic>>(
+                                            future: Future.wait([
+                                              repo.getPoolMembers(pool.id),
+                                              repo.getRoundsForPool(pool.id),
+                                            ]),
+                                            builder: (context, snapshot) {
+                                              if (!snapshot.hasData) {
+                                                return const Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                );
+                                              }
+                                              return PoolMembersDialog(
+                                                pool: pool,
+                                                members: snapshot.data![0],
+                                                rounds: snapshot.data![1],
+                                              );
+                                            },
+                                          ),
+                                        );
+                                      },
+                                      child: Container(
+                                        width: 60,
+                                        alignment: Alignment.center,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 16),
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            left: BorderSide(
+                                                color: cs.outlineVariant
+                                                    .withValues(alpha: 0.3)),
+                                          ),
                                         ),
-                                      ],
-                                    ],
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.info_outline_rounded,
+                                              color: cs.primary,
+                                              size: 28,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Hội viên',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: cs.primary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -564,28 +540,106 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
             pool: pool,
             users: users,
             initialMemberIds: initialMemberIds,
-            onSave:
-                (
-                  name,
-                  baseAmount,
-                  totalRounds,
-                  meetingDay,
-                  startDate,
-                  memberIds,
-                ) async {
-                  await repository.savePool(
-                    id: pool?.id,
-                    name: name,
-                    baseAmount: baseAmount,
-                    totalRounds: totalRounds,
-                    meetingDay: meetingDay,
-                    startDate: startDate,
-                    memberIds: memberIds,
-                  );
-                  refreshAll(ref);
-                },
+            onSave: (
+              name,
+              baseAmount,
+              totalRounds,
+              meetingDay,
+              startDate,
+              memberIds,
+            ) async {
+              await repository.savePool(
+                id: pool?.id,
+                name: name,
+                baseAmount: baseAmount,
+                totalRounds: totalRounds,
+                meetingDay: meetingDay,
+                startDate: startDate,
+                memberIds: memberIds,
+              );
+              refreshAll(ref);
+            },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildFilterButton(
+    BuildContext context,
+    WidgetRef ref,
+    int? filterDay,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    final hasFilter = filterDay != null;
+
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: hasFilter ? cs.primaryContainer : cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasFilter ? cs.primary : cs.outlineVariant,
+          width: hasFilter ? 1.5 : 1,
+        ),
+        boxShadow: hasFilter
+            ? [
+                BoxShadow(
+                  color: cs.primary.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                )
+              ]
+            : null,
+      ),
+      child: InkWell(
+        onTap: () async {
+          final selected = await pickLunarDay(context, filterDay);
+          if (selected != null) {
+            ref.read(poolFilterDayProvider.notifier).state = selected;
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.calendar_today_rounded,
+                size: 18,
+                color: hasFilter ? cs.primary : cs.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                hasFilter ? 'Ngày $filterDay' : 'Ngày họp',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: hasFilter ? FontWeight.bold : FontWeight.w500,
+                  color: hasFilter ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+                ),
+              ),
+              if (hasFilter) ...[
+                const SizedBox(width: 8),
+                Container(
+                  width: 1,
+                  height: 20,
+                  color: cs.primary.withValues(alpha: 0.2),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  icon: Icon(Icons.close_rounded, size: 18, color: cs.primary),
+                  onPressed: () {
+                    ref.read(poolFilterDayProvider.notifier).state = null;
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

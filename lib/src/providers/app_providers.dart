@@ -7,6 +7,7 @@ import '../models/round_entity.dart';
 import '../models/statement_models.dart';
 import '../models/user_entity.dart';
 import '../services/sample_data_service.dart';
+import '../services/lunar_schedule_service.dart';
 
 final appRepositoryProvider = FutureProvider<AppRepository>((ref) async {
   final repository = await AppRepository.open();
@@ -20,6 +21,8 @@ final poolSearchProvider = StateProvider<String>((ref) => '');
 final roundSearchProvider = StateProvider<String>((ref) => '');
 final statementSearchProvider = StateProvider<String>((ref) => '');
 final selectedPoolIdProvider = StateProvider<int?>((ref) => null);
+final poolFilterDayProvider = StateProvider<int?>((ref) => null);
+
 final statementMonthProvider = StateProvider<DateTime>((ref) {
   final now = DateTime.now();
   final lunar = LunarCalendar.solarToLunar(now);
@@ -35,7 +38,9 @@ final membersProvider = FutureProvider<List<User>>((ref) async {
 final poolsProvider = FutureProvider<List<Pool>>((ref) async {
   final repository = await ref.watch(appRepositoryProvider.future);
   final query = ref.watch(poolSearchProvider);
-  return repository.getPools(query: query);
+  final filterDay = ref.watch(poolFilterDayProvider);
+
+  return repository.getPools(query: query, meetingDay: filterDay);
 });
 
 final selectedPoolMembersProvider = FutureProvider<List<User>>((ref) async {

@@ -1,5 +1,6 @@
 import 'dart:math';
 import '../data/app_repository.dart';
+import 'package:lunar_calendar/lunar_calendar.dart';
 
 class SampleDataService {
   const SampleDataService();
@@ -54,12 +55,16 @@ class SampleDataService {
       final totalRounds = memberIds.length;
       final baseAmount = (random.nextInt(5) + 1) * 1000000; // 1M to 5M
       
+      final meetingDay = random.nextInt(28) + 1;
+      final lunarMonth = random.nextInt(3) + 1;
+      final startDate = LunarCalendar.lunarToSolar(meetingDay, lunarMonth, 2026);
+      
       final pool = await repository.savePool(
         name: poolNames[i],
         baseAmount: baseAmount,
         totalRounds: totalRounds,
-        meetingDay: random.nextInt(28) + 1,
-        startDate: DateTime(2026, random.nextInt(3) + 1, random.nextInt(28) + 1),
+        meetingDay: meetingDay,
+        startDate: startDate,
         memberIds: memberIds,
       );
 

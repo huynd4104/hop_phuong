@@ -317,6 +317,7 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
                                                           .calendar_today_rounded,
                                                       label:
                                                           'Ngày ${pool.meetingDay} âm lịch',
+                                                      color: cs.primary,
                                                     ),
                                                   ],
                                                 ),
@@ -353,9 +354,9 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
                                                                 'Âm: ${formatLunarDate(pool.startDate)} → ${formatLunarDate(endDate)}',
                                                                 style: TextStyle(
                                                                     fontSize:
-                                                                        13,
-                                                                    color: cs
-                                                                        .onSurfaceVariant),
+                                                                        14,
+                                                                    fontWeight: FontWeight.bold,
+                                                                    color: cs.primary),
                                                               ),
                                                             ),
                                                           ],

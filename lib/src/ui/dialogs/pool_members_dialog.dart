@@ -98,10 +98,15 @@ class _PoolMembersDialogState extends State<PoolMembersDialog> {
               decoration: InputDecoration(
                 hintText: 'Tìm theo tên hoặc SĐT...',
                 prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded),
-                ),
+                suffixIcon: _query.isNotEmpty
+                    ? IconButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _query = '');
+                        },
+                        icon: const Icon(Icons.clear_rounded),
+                      )
+                    : null,
                 filled: true,
                 fillColor: cs.surface,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -201,8 +206,9 @@ class _PoolMembersDialogState extends State<PoolMembersDialog> {
                               Text(
                                 formatLunarDate(winDate),
                                 style: TextStyle(
-                                  color: cs.onSurfaceVariant,
-                                  fontSize: 10,
+                                  color: cs.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ],

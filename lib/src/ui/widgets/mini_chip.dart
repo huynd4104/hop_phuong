@@ -5,22 +5,32 @@ class MiniChip extends StatelessWidget {
     super.key,
     required this.label,
     this.icon,
+    this.color,
   });
 
   final String label;
   final IconData? icon;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     
+    final effectiveBgColor = color != null 
+        ? color!.withValues(alpha: 0.1) 
+        : cs.secondaryContainer.withValues(alpha: 0.7);
+    final effectiveBorderColor = color != null 
+        ? color!.withValues(alpha: 0.2) 
+        : cs.secondaryContainer;
+    final effectiveContentColor = color ?? cs.onSecondaryContainer;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: cs.secondaryContainer.withValues(alpha: 0.7),
+        color: effectiveBgColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: cs.secondaryContainer,
+          color: effectiveBorderColor,
           width: 1,
         ),
       ),
@@ -31,7 +41,7 @@ class MiniChip extends StatelessWidget {
             Icon(
               icon,
               size: 14,
-              color: cs.onSecondaryContainer,
+              color: effectiveContentColor,
             ),
             const SizedBox(width: 4),
           ],
@@ -40,7 +50,7 @@ class MiniChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: cs.onSecondaryContainer,
+              color: effectiveContentColor,
               letterSpacing: -0.2,
             ),
           ),

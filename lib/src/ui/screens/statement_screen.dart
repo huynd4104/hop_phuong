@@ -605,9 +605,10 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                       children: [
                                         Text(
                                           'Âm: ${formatLunarDate(opt.date)}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 17,
+                                            color: cs.primary,
                                           ),
                                         ),
                                         Text(
@@ -869,9 +870,10 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                 title: breakdown.roundDates.isNotEmpty
                                     ? Text(
                                         'Âm: ${formatLunarDate(breakdown.roundDates.first)}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 18,
+                                          color: Theme.of(context).colorScheme.primary,
                                         ),
                                       )
                                     : Text(

@@ -93,8 +93,8 @@ class DateInfoCard extends StatelessWidget {
                   child: Text(
                     isLunar ? formatLunarDate(date) : formatSolarDate(date),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
+                          fontWeight: isLunar ? FontWeight.w900 : FontWeight.bold,
+                          color: isLunar ? colorScheme.primary : colorScheme.onSurface,
                         ),
                     overflow: TextOverflow.ellipsis,
                   ),

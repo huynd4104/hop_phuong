@@ -266,10 +266,11 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                                                       formatLunarDate(
                                                         round.date,
                                                       ),
-                                                      style: const TextStyle(
-                                                        fontSize: 12,
+                                                      style: TextStyle(
+                                                        fontSize: 14,
                                                         fontWeight:
-                                                            FontWeight.bold,
+                                                            FontWeight.w900,
+                                                        color: Theme.of(context).colorScheme.primary,
                                                       ),
                                                     ),
                                                   ),
@@ -521,18 +522,21 @@ class _RoundMobileCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          winnerName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                          formatLunarDate(round.date),
+                          style: TextStyle(
+                            color: cs.primary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Text(
-                          'Âm lịch: ${formatLunarDate(round.date)}',
+                          winnerName,
                           style: TextStyle(
                             color: cs.onSurfaceVariant,
-                            fontSize: 13,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],

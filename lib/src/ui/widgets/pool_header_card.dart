@@ -96,7 +96,7 @@ class PoolHeaderCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text('Âm: ${formatLunarDate(pool.startDate)} → ${formatLunarDate(endDate)}', 
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.primary)),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: cs.primary)),
                         Text('Dương: ~${formatSolarDate(pool.startDate)} → ~${formatSolarDate(endDate)}', 
                           style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                       ],

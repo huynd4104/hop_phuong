@@ -1,0 +1,9 @@
+name: lunar_calendar
+description: Null-safe Vietnamese lunar calendar helpers for offline Flutter apps.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:

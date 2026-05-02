@@ -87,7 +87,7 @@ Future<void> openPaymentsSheet(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Thanh toán kỳ thứ ${round.roundNumber}',
+                  'Thanh toán tháng thứ ${round.roundNumber}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),

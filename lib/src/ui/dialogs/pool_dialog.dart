@@ -123,7 +123,8 @@ class PoolDialogState extends State<PoolDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.pool == null ? 'Tạo Phường' : 'Sửa Phường'),
+      title: null, 
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24), // Tăng padding top từ 20 mặc định lên để an toàn hơn
       content: SizedBox(
         width: 560,
         child: Scrollbar(
@@ -131,17 +132,20 @@ class PoolDialogState extends State<PoolDialog> {
           thumbVisibility: true,
           child: SingleChildScrollView(
             controller: _mainScrollController,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Tên Phường'),
-                  validator: (value) => value == null || value.trim().isEmpty ? 'Vui lòng nhập tên Phường' : null,
-                ),
-                const SizedBox(height: 12),
+            child: SafeArea(
+              bottom: false, // Chỉ cần quan tâm tới top khi bị đẩy lên
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 12), // Khoảng trống cho label "Tên Phường" khi nó float lên
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(labelText: 'Tên Phường'),
+                      validator: (value) => value == null || value.trim().isEmpty ? 'Vui lòng nhập tên Phường' : null,
+                    ),
+                    const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -172,10 +176,10 @@ class PoolDialogState extends State<PoolDialog> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('Tổng số kỳ', style: Theme.of(context).textTheme.labelSmall),
+                              Text('Tổng số người', style: Theme.of(context).textTheme.labelSmall),
                               const SizedBox(height: 4),
                               Text(
-                                '${_selectedMemberIds.length} kỳ',
+                                '${_selectedMemberIds.length} người',
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -312,7 +316,8 @@ class PoolDialogState extends State<PoolDialog> {
                             );
                           },
                         ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

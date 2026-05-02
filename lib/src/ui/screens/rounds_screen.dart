@@ -84,7 +84,7 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
               return const EmptyState(
                 title: 'Không có Phường nào để xử lý',
                 subtitle:
-                    'Hãy tạo Phường trước. Ứng dụng sẽ tự động tạo tất cả các kỳ Phường.',
+                    'Hãy tạo Phường trước. Ứng dụng sẽ tự động tạo tất cả các người Phường.',
               );
             }
 
@@ -101,7 +101,7 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
               return const EmptyState(
                 title: 'Chọn một Phường',
                 subtitle:
-                    'Chọn một Phường từ danh sách bên trên để xem và chỉnh sửa các kỳ.',
+                    'Chọn một Phường từ danh sách bên trên để xem và chỉnh sửa các người.',
               );
             }
 
@@ -114,7 +114,7 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                       flex: 3,
                       child: TextField(
                         decoration: InputDecoration(
-                          hintText: 'Tìm kỳ theo số hoặc số tiền…',
+                          hintText: 'Tìm người theo số hoặc số tiền…',
                           prefixIcon: Icon(Icons.search_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -177,148 +177,135 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                       data: (rounds) {
                         if (rounds.isEmpty) {
                           return const EmptyState(
-                            title: 'Không tìm thấy kỳ nào',
+                            title: 'Không tìm thấy người nào',
                             subtitle:
                                 'Phường này có thể đang trống hoặc bộ lọc tìm kiếm không có kết quả.',
                           );
                         }
 
-                        return Scrollbar(
-                          controller: _horizontalScrollController,
-                          thumbVisibility: true,
-                          child: SingleChildScrollView(
-                            controller: _horizontalScrollController,
-                            scrollDirection: Axis.horizontal,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.vertical,
-                                child: DataTable(
-                                  headingRowHeight: 48,
-                                  dataRowMinHeight: 56,
-                                  dataRowMaxHeight: 56,
-                                  columnSpacing: 16,
-                                  horizontalMargin: 12,
-                                  columns: const [
-                                  DataColumn(label: Text('Kỳ')),
-                                  DataColumn(label: Text('Ngày')),
-                                  DataColumn(label: Text('Mã')),
-                                  DataColumn(label: Text('Người lấy')),
-                                  DataColumn(label: Text('Tiền đấu')),
-                                  DataColumn(label: Text('Đóng vào')),
-                                  DataColumn(label: Text('Tiền nhận')),
-                                  DataColumn(label: Text('Thao tác')),
-                                ],
-                                rows: rounds
-                                    .map((round) {
-                                      final winnerName = labelForUser(
-                                        members,
-                                        round.winnerId,
-                                      );
-                                      final winnerCode = round.winnerId == null
-                                          ? '-'
-                                          : generateMemberCode(
-                                              round.winnerId!,
-                                              winnerName,
+                        return LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Scrollbar(
+                              controller: _horizontalScrollController,
+                              thumbVisibility: true,
+                              child: SingleChildScrollView(
+                                controller: _horizontalScrollController,
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.vertical,
+                                    child: DataTable(
+                                      headingRowHeight: 48,
+                                      dataRowMinHeight: 56,
+                                      dataRowMaxHeight: 56,
+                                      columnSpacing: 16,
+                                      horizontalMargin: 12,
+                                      columns: const [
+                                        DataColumn(label: Text('Tháng')),
+                                        DataColumn(label: Text('Ngày')),
+                                        DataColumn(label: Text('Người lấy')),
+                                        DataColumn(label: Text('Tiền đấu')),
+                                        DataColumn(label: Text('Đóng vào')),
+                                        DataColumn(label: Text('Tiền nhận')),
+                                        DataColumn(label: Text('Thao tác')),
+                                      ],
+                                      rows: rounds
+                                          .map((round) {
+                                            final winnerName = labelForUser(
+                                              members,
+                                              round.winnerId,
                                             );
-                                      return DataRow(
-                                        cells: [
-                                          DataCell(
-                                            Text('${round.roundNumber}'),
-                                          ),
-                                          DataCell(
-                                            SizedBox(
-                                              width: 90,
-                                              child: Text.rich(
-                                                TextSpan(
-                                                  children: [
-                                                    TextSpan(
-                                                      text: 'Â: ${formatLunarDate(round.date)}\n',
-                                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                                    ),
-                                                    TextSpan(
-                                                      text: 'D: ${formatSolarDate(round.date)}',
-                                                      style: TextStyle(
-                                                        fontSize: 10,
-                                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            return DataRow(
+                                              cells: [
+                                                DataCell(
+                                                  Text('${round.roundNumber}'),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 90,
+                                                    child: Text.rich(
+                                                      TextSpan(
+                                                        children: [
+                                                          TextSpan(
+                                                            text: 'Â: ${formatLunarDate(round.date)}\n',
+                                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                                          ),
+                                                          TextSpan(
+                                                            text: 'D: ${formatSolarDate(round.date)}',
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            SizedBox(
-                                              width: 45,
-                                              child: Text(
-                                                winnerCode,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context).colorScheme.primary,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(Text(winnerName)),
-                                          DataCell(
-                                            Text(formatMoney(round.bidAmount)),
-                                          ),
-                                          DataCell(
-                                            Text(
-                                              formatMoney(
-                                                round.contributionAmount,
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Text(
-                                              formatMoney(
-                                                round.netReceiveAmount,
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                IconButton(
-                                                  tooltip: 'Sửa kỳ Phường',
-                                                  onPressed: () =>
-                                                      openRoundDialog(
-                                                        context,
-                                                        ref,
-                                                        repository: repository,
-                                                        pool: pool,
-                                                        round: round,
-                                                      ),
-                                                  icon: const Icon(
-                                                    Icons.edit_outlined,
                                                   ),
                                                 ),
-                                                IconButton(
-                                                  tooltip: 'Thanh toán',
-                                                  onPressed: () =>
-                                                      openPaymentsSheet(
-                                                        context,
-                                                        ref,
-                                                        repository: repository,
-                                                        pool: pool,
-                                                        round: round,
+                                                DataCell(Text(winnerName)),
+                                                DataCell(
+                                                  Text(formatMoney(round.bidAmount)),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    formatMoney(
+                                                      round.contributionAmount,
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    formatMoney(
+                                                      round.netReceiveAmount,
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      IconButton(
+                                                        tooltip: 'Sửa người Phường',
+                                                        onPressed: () =>
+                                                            openRoundDialog(
+                                                              context,
+                                                              ref,
+                                                              repository: repository,
+                                                              pool: pool,
+                                                              round: round,
+                                                            ),
+                                                        icon: const Icon(
+                                                          Icons.edit_outlined,
+                                                        ),
                                                       ),
-                                                  icon: const Icon(
-                                                    Icons.payments_outlined,
+                                                      IconButton(
+                                                        tooltip: 'Thanh toán',
+                                                        onPressed: () =>
+                                                            openPaymentsSheet(
+                                                              context,
+                                                              ref,
+                                                              repository: repository,
+                                                              pool: pool,
+                                                              round: round,
+                                                            ),
+                                                        icon: const Icon(
+                                                          Icons.payments_outlined,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                               ],
-                                            ),
-                                          ),
-                                        ],
-                                      );
-                                    })
-                                    .toList(growable: false),
+                                            );
+                                          })
+                                          .toList(growable: false),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         );
                       },
                     ),

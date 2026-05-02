@@ -76,7 +76,7 @@ class PoolHeaderCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text('Gốc ${formatMoney(pool.baseAmount)} · ${pool.totalRounds} kỳ',
+                  Text('Gốc ${formatMoney(pool.baseAmount)} · ${pool.totalRounds} người',
                       style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                 ],
               ),

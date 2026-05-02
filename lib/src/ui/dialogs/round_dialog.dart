@@ -77,7 +77,7 @@ class RoundDialogState extends State<RoundDialog> {
     final totalPot = widget.pool.baseAmount * widget.members.length;
 
     return AlertDialog(
-      title: Text('Kỳ thứ ${widget.round.roundNumber}'),
+      title: Text('Người thứ ${widget.round.roundNumber}'),
       content: SizedBox(
         width: 460,
         child: Form(
@@ -134,7 +134,7 @@ class RoundDialogState extends State<RoundDialog> {
                     final confirm = await showConfirmDialog(
                       context,
                       'Xác nhận cập nhật',
-                      'Bạn có chắc chắn muốn cập nhật kết quả kỳ này?',
+                      'Bạn có chắc chắn muốn cập nhật kết quả người này?',
                     );
                     if (!confirm || !mounted) return;
                   }

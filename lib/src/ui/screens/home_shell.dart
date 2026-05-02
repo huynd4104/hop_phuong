@@ -46,7 +46,7 @@ class HomeShell extends ConsumerWidget {
   static const _titles = <String>[
     'Thành viên',
     'Phường',
-    'Kỳ Phường',
+    'Tháng Phường',
     'Bảng kê',
     'Sao lưu',
   ];
@@ -87,29 +87,6 @@ class HomeShell extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: isDesktop
-          ? null
-          : AppBar(
-              title: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [cs.primary, cs.tertiary],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.hub, color: Colors.white, size: 18),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(_titles[selectedTab]),
-                ],
-              ),
-            ),
       body: SafeArea(
         child: isDesktop
             ? Row(

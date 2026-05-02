@@ -122,7 +122,7 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
                         ? 'Chưa có Phường nào'
                         : 'Không tìm thấy Phường',
                     subtitle: query.isEmpty
-                        ? 'Tạo Phường để tự động sinh ra các kỳ Phường.'
+                        ? 'Tạo Phường để tự động sinh ra các người Phường.'
                         : 'Hãy thử từ khóa khác.',
                   );
                 }
@@ -178,7 +178,7 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
                                         ),
                                       ),
                                       IconButton(
-                                        tooltip: 'Xem kỳ Phường',
+                                        tooltip: 'Xem người Phường',
                                         onPressed: () {
                                           ref
                                               .read(
@@ -287,7 +287,7 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
                                           ),
                                           MiniChip(
                                             icon: Icons.repeat_rounded,
-                                            label: '${pool.totalRounds} kỳ',
+                                            label: '${pool.totalRounds} người',
                                           ),
                                           MiniChip(
                                             icon: Icons.calendar_today_rounded,
@@ -443,14 +443,6 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
                                                   columns: const [
                                                     DataColumn(
                                                       label: Text(
-                                                        'Mã',
-                                                        style: TextStyle(
-                                                          fontSize: 13,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    DataColumn(
-                                                      label: Text(
                                                         'Tên thành viên',
                                                         style: TextStyle(
                                                           fontSize: 13,
@@ -467,26 +459,9 @@ class _PoolsScreenState extends ConsumerState<PoolsScreen> {
                                                     ),
                                                   ],
                                                   rows: members.map((m) {
-                                                    final code =
-                                                        generateMemberCode(
-                                                          m.id,
-                                                          m.name,
-                                                        );
                                                      final hasWon = winnerIds.contains(m.id);
                                                     return DataRow(
                                                       cells: [
-                                                        DataCell(
-                                                          Text(
-                                                            code,
-                                                            style: TextStyle(
-                                                              fontSize: 13,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              color: cs.primary,
-                                                            ),
-                                                          ),
-                                                        ),
                                                          DataCell(
                                                            Row(
                                                              mainAxisSize: MainAxisSize.min,

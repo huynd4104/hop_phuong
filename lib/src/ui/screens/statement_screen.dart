@@ -119,7 +119,7 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                       child: rows.isEmpty
                           ? EmptyState(
                               title: query.isEmpty ? 'Không có dữ liệu bảng kê' : 'Không tìm thấy người dùng',
-                              subtitle: 'Hãy đổi tháng hoặc xóa bộ lọc tìm kiếm.',
+                              subtitle: 'Hãy đổi kỳ hoặc xóa bộ lọc tìm kiếm.',
                             )
                           : ListView.separated(
                               padding: const EdgeInsets.only(bottom: 24),
@@ -277,7 +277,7 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                   const SizedBox(height: 20),
                   ...row.breakdowns.map(
                     (breakdown) {
-                      final roundText = breakdown.roundNumbers.isNotEmpty ? ' - Kỳ ${breakdown.roundNumbers.join(", ")}' : '';
+                      final roundText = breakdown.roundNumbers.isNotEmpty ? ' - Người ${breakdown.roundNumbers.join(", ")}' : '';
                       final isReceive = breakdown.netBalance >= 0;
                       final isPaid = localPaidState[breakdown.poolId] ?? false;
 

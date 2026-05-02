@@ -24,91 +24,111 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
     final query = ref.watch(statementSearchProvider);
     final statementAsync = ref.watch(statementProvider);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Tìm tên hoặc số điện thoại…',
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    hintStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                  onChanged: (value) =>
-                      ref.read(statementSearchProvider.notifier).state = value,
-                ),
+    final cs = Theme.of(context).colorScheme;
+    final size = MediaQuery.sizeOf(context);
+    final isMobile = size.width < 600;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // --- Modern Header & Filter Section ---
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 180,
-                child: OutlinedButton.icon(
-                  onPressed: () => _openStatementSelector(context),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                      ),
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Tìm tên, số điện thoại...',
+                          prefixIcon: Icon(Icons.search_rounded, color: cs.primary, size: 20),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          hintStyle: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.7), fontSize: 14),
+                        ),
+                        onChanged: (value) => ref.read(statementSearchProvider.notifier).state = value,
+                      ),
                     ),
                   ),
-                  icon: const Icon(Icons.event_note_outlined, size: 18),
-                  label: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(width: 12),
+                  _FilterStatusBadge(
+                    year: selectedYear,
+                    month: selectedMonth,
+                    onTap: () => _openStatementSelector(context),
+                  ),
+                ],
+              ),
+              if (selectedRoundIds.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
                     children: [
-                      Text(
-                        'Năm $selectedYear',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: cs.primaryContainer.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: cs.primary.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.layers_outlined, size: 14, color: cs.onPrimaryContainer),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Đã chọn ${selectedRoundIds.length} kỳ phường',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: cs.onPrimaryContainer,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      Text(
-                        selectedMonth == null
-                            ? 'Chọn tháng'
-                            : 'Tháng $selectedMonth',
-                        style: const TextStyle(fontSize: 11),
+                      const SizedBox(width: 8),
+                      // Nút xóa nhanh tất cả filter kỳ
+                      IconButton(
+                        onPressed: () => ref.read(statementSelectedRoundIdsProvider.notifier).state = {},
+                        icon: const Icon(Icons.close_rounded, size: 16),
+                        style: IconButton.styleFrom(
+                          backgroundColor: cs.surfaceContainerHighest,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(28, 28),
+                        ),
+                        visualDensity: VisualDensity.compact,
                       ),
                     ],
                   ),
                 ),
-              ),
+              ],
             ],
           ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                selectedRoundIds.isEmpty
-                    ? 'Chưa chọn kỳ nào'
-                    : 'Đã chọn ${selectedRoundIds.length} kỳ',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
+        ),
+        const SizedBox(height: 8),
+        // --- Statement List Section ---
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: statementAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => ErrorView(
@@ -298,8 +318,8 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
               },
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -333,9 +353,7 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
   Future<void> _openStatementSelector(BuildContext context) async {
     final initialYear = ref.read(statementSelectedYearProvider);
     final initialMonth = ref.read(statementSelectedMonthProvider);
-    final initialSelectedIds = ref
-        .read(statementSelectedRoundIdsProvider)
-        .toSet();
+    final initialSelectedIds = ref.read(statementSelectedRoundIdsProvider).toSet();
 
     var pickerYear = initialYear;
     var pickerMonth = initialMonth;
@@ -353,9 +371,7 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
         return;
       }
 
-      setState(() {
-        isLoading = true;
-      });
+      setState(() => isLoading = true);
 
       final repository = await ref.read(appRepositoryProvider.future);
       final loadedOptions = await repository.getStatementRoundOptions(
@@ -374,367 +390,281 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
     if (pickerMonth != null) {
       final repository = await ref.read(appRepositoryProvider.future);
       options = await repository.getStatementRoundOptions(
-        month: pickerMonth,
+        month: pickerMonth!,
         year: pickerYear,
       );
-      final availableIds = options.map((item) => item.roundId).toSet();
-      selectedIds = selectedIds.intersection(availableIds);
     }
 
     if (!context.mounted) return;
 
     final size = MediaQuery.sizeOf(context);
-    final isLandscape = size.width > size.height;
     final useDialog = size.width >= 720;
-    final monthColumnCount = size.width >= 900
-      ? 6
-      : size.width >= 560
-        ? 4
-        : 3;
-    final optionGridLayout = size.width >= 840;
     final contentMaxWidth = size.width >= 1200 ? 920.0 : 720.0;
 
     Widget buildSelectorContent(BuildContext panelContext, StateSetter setState) {
       final cs = Theme.of(panelContext).colorScheme;
 
-      Widget buildMonthTile(int month) {
-        final isSelected = pickerMonth == month;
-        return InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            setState(() {
-              pickerMonth = month;
-              selectedIds = <int>{};
-            });
-            loadOptions(setState);
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            decoration: BoxDecoration(
-              color: isSelected ? cs.primary : cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isSelected ? cs.primary : cs.outlineVariant,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                'Tháng $month',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: isSelected ? cs.onPrimary : cs.onSurface,
-                ),
-              ),
-            ),
-          ),
-        );
-      }
-
-      Widget buildOptionCard(StatementRoundOption option) {
-        final isSelected = selectedIds.contains(option.roundId);
-        return InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            setState(() {
-              if (isSelected) {
-                selectedIds.remove(option.roundId);
-              } else {
-                selectedIds.add(option.roundId);
-              }
-            });
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isSelected ? cs.primaryContainer : cs.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected ? cs.primary : cs.outlineVariant,
-                width: isSelected ? 1.5 : 1,
-              ),
-            ),
-            child: optionGridLayout
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? cs.primary
-                                  : cs.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'Kỳ ${option.roundNumber}',
-                              style: TextStyle(
-                                color: isSelected ? cs.onPrimary : cs.onSurface,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          Icon(
-                            isSelected
-                                ? Icons.check_circle_rounded
-                                : Icons.radio_button_unchecked_rounded,
-                            size: 18,
-                            color: isSelected ? cs.primary : cs.outline,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        option.poolName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Bắt đầu: ${formatSolarDate(option.poolStartDate)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Âm: ${formatLunarDate(option.date)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? cs.primary
-                              : cs.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Kỳ ${option.roundNumber}',
-                          style: TextStyle(
-                            color: isSelected ? cs.onPrimary : cs.onSurface,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              option.poolName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Bắt đầu: ${formatSolarDate(option.poolStartDate)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: cs.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Âm: ${formatLunarDate(option.date)}',
-                        textAlign: TextAlign.end,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        );
-      }
-
-      Widget buildOptionsArea() {
-        if (pickerMonth == null) {
-          return Center(
-            child: Text(
-              'Chọn một tháng để xem toàn bộ kỳ phường trong tháng đó.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: cs.onSurfaceVariant),
-            ),
-          );
-        }
-
-        if (isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (options.isEmpty) {
-          return Center(
-            child: Text(
-              'Tháng này chưa có kỳ phường nào.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: cs.onSurfaceVariant),
-            ),
-          );
-        }
-
-        if (optionGridLayout) {
-          return GridView.builder(
-            padding: EdgeInsets.zero,
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 320,
-              mainAxisExtent: 118,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-            ),
-            itemCount: options.length,
-            itemBuilder: (context, index) => buildOptionCard(options[index]),
-          );
-        }
-
-        return ListView.separated(
-          padding: EdgeInsets.zero,
-          itemCount: options.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 10),
-          itemBuilder: (context, index) => buildOptionCard(options[index]),
-        );
-      }
-
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // --- Header: Year Selection ---
           Row(
             children: [
               Expanded(
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
                   onTap: () async {
-                    final pickedYear = await _pickYear(
-                      panelContext,
-                      pickerYear,
-                    );
+                    final pickedYear = await _pickYear(panelContext, pickerYear);
                     if (pickedYear == null) return;
                     setState(() {
                       pickerYear = pickedYear;
                       pickerMonth = null;
-                      options = <StatementRoundOption>[];
-                      selectedIds = <int>{};
+                      options = [];
+                      selectedIds = {};
                     });
                   },
+                  borderRadius: BorderRadius.circular(16),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      color: cs.primaryContainer,
-                      borderRadius: BorderRadius.circular(14),
+                      color: cs.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: cs.primary.withValues(alpha: 0.1)),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        Icon(Icons.calendar_today_rounded, size: 18, color: cs.primary),
+                        const SizedBox(width: 12),
                         Text(
-                          'Năm $pickerYear',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: cs.onPrimaryContainer,
-                          ),
+                          'Năm âm lịch: $pickerYear',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: cs.primary, fontSize: 15),
                         ),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: cs.onPrimaryContainer,
-                        ),
+                        const Spacer(),
+                        Icon(Icons.unfold_more_rounded, size: 20, color: cs.primary),
                       ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              FilledButton.tonalIcon(
-                onPressed: selectedIds.isEmpty
-                    ? null
-                    : () {
-                        setState(() {
-                          selectedIds = <int>{};
-                        });
-                      },
-                icon: const Icon(Icons.clear_all_rounded, size: 18),
-                label: const Text('Bỏ chọn'),
-              ),
+              if (selectedIds.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                IconButton.filledTonal(
+                  onPressed: () => setState(() => selectedIds = {}),
+                  icon: const Icon(Icons.layers_clear_rounded, size: 20),
+                  tooltip: 'Bỏ chọn tất cả',
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: monthColumnCount,
+          const SizedBox(height: 20),
+
+          // --- Month Grid ---
+          Text(
+            'Chọn tháng',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 10),
+          GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 8,
-            childAspectRatio: monthColumnCount >= 6
-                ? 3.35
-                : monthColumnCount == 4
-                    ? 3.05
-                    : 2.75,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: size.width > 900 ? 6 : (size.width > 400 ? 4 : 3),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 2.2,
+            ),
+            itemCount: 12,
+            itemBuilder: (context, index) {
+              final month = index + 1;
+              final isSelected = pickerMonth == month;
+              return InkWell(
+                onTap: () {
+                  setState(() {
+                    pickerMonth = month;
+                    selectedIds = {};
+                  });
+                  loadOptions(setState);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isSelected ? cs.primary : cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isSelected ? cs.primary : cs.outlineVariant.withValues(alpha: 0.5)),
+                  ),
+                  child: Text(
+                    'T$month',
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? cs.onPrimary : cs.onSurface,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // --- Options List ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              for (var month = 1; month <= 12; month++) buildMonthTile(month),
+              Text(
+                'Kỳ phường trong tháng',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: cs.onSurfaceVariant),
+              ),
+              if (options.isNotEmpty)
+                Text(
+                  '${options.length} kỳ',
+                  style: TextStyle(fontSize: 12, color: cs.primary, fontWeight: FontWeight.w600),
+                ),
             ],
           ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : options.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.event_busy_rounded, size: 48, color: cs.outlineVariant),
+                            const SizedBox(height: 12),
+                            Text(
+                              pickerMonth == null ? 'Vui lòng chọn tháng' : 'Không có kỳ phường nào',
+                              style: TextStyle(color: cs.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: options.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final opt = options[index];
+                          final isSel = selectedIds.contains(opt.roundId);
+                          return InkWell(
+                            onTap: () {
+                              setState(() {
+                                if (isSel) {
+                                  selectedIds.remove(opt.roundId);
+                                } else {
+                                  selectedIds.add(opt.roundId);
+                                }
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isSel ? cs.primaryContainer.withValues(alpha: 0.5) : cs.surface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isSel ? cs.primary : cs.outlineVariant.withValues(alpha: 0.5),
+                                  width: isSel ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: isSel ? cs.primary : cs.surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      '${opt.roundNumber}',
+                                      style: TextStyle(
+                                        color: isSel ? cs.onPrimary : cs.onSurface,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Âm: ${formatLunarDate(opt.date)}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        Text(
+                                          opt.poolName,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: cs.onSurfaceVariant,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Checkbox(
+                                    value: isSel,
+                                    onChanged: (v) {
+                                      setState(() {
+                                        if (v == true) {
+                                          selectedIds.add(opt.roundId);
+                                        } else {
+                                          selectedIds.remove(opt.roundId);
+                                        }
+                                      });
+                                    },
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
           const SizedBox(height: 16),
-          Expanded(child: buildOptionsArea()),
-          const SizedBox(height: 16),
-          OverflowBar(
-            alignment: MainAxisAlignment.end,
-            spacing: 12,
-            overflowSpacing: 8,
+
+          // --- Actions ---
+          Row(
             children: [
-              TextButton(
-                onPressed: () => Navigator.of(panelContext).pop(),
-                child: const Text('Hủy'),
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(panelContext),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Hủy bỏ'),
+                ),
               ),
-              FilledButton(
-                onPressed: selectedIds.isEmpty
-                    ? null
-                    : () {
-                        ref
-                            .read(statementSelectedYearProvider.notifier)
-                            .state = pickerYear;
-                        if (pickerMonth != null) {
-                          ref
-                              .read(statementSelectedMonthProvider.notifier)
-                              .state = pickerMonth;
-                        }
-                        ref
-                            .read(statementSelectedRoundIdsProvider.notifier)
-                            .state = selectedIds.toSet();
-                        Navigator.of(panelContext).pop();
-                      },
-                child: const Text('OK'),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: FilledButton(
+                  onPressed: selectedIds.isEmpty
+                      ? null
+                      : () {
+                          ref.read(statementSelectedYearProvider.notifier).state = pickerYear;
+                          if (pickerMonth != null) {
+                            ref.read(statementSelectedMonthProvider.notifier).state = pickerMonth;
+                          }
+                          ref.read(statementSelectedRoundIdsProvider.notifier).state = selectedIds.toSet();
+                          Navigator.pop(panelContext);
+                        },
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Áp dụng bộ lọc'),
+                ),
               ),
             ],
           ),
@@ -743,95 +673,50 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
     }
 
     if (useDialog) {
-      final dialogHeight = isLandscape ? size.height * 0.72 : size.height * 0.9;
-      await showDialog<void>(
+      await showDialog(
         context: context,
-        builder: (dialogContext) {
-          return Dialog(
-            insetPadding: EdgeInsets.symmetric(
-              horizontal: isLandscape ? 12 : 20,
-              vertical: isLandscape ? 12 : 24,
-            ),
-            child: SizedBox(
-              width: contentMaxWidth,
-              height: dialogHeight,
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isLandscape ? 16 : 20,
-                  vertical: isLandscape ? 12 : 20,
-                ),
-                child: StatefulBuilder(
-                  builder: (context, setState) {
-                    return SingleChildScrollView(
-                      padding: EdgeInsets.zero,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: dialogHeight -
-                              (isLandscape ? 24 : 40),
-                        ),
-                        child: IntrinsicHeight(
-                          child: buildSelectorContent(context, setState),
-                        ),
-                      ),
-                    );
-                  },
+        builder: (dialogContext) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          child: Container(
+            width: contentMaxWidth,
+            height: size.height * 0.85,
+            padding: const EdgeInsets.all(24),
+            child: StatefulBuilder(builder: buildSelectorContent),
+          ),
+        ),
+      );
+    } else {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (sheetContext) {
+        final cs = Theme.of(context).colorScheme;
+        return Container(
+          height: size.height * 0.9,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: cs.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-          );
-        },
-      );
-      return;
-    }
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.9,
-          minChildSize: 0.6,
-          maxChildSize: 0.98,
-          builder: (context, scrollController) {
-            return StatefulBuilder(
-              builder: (context, setState) {
-                final cs = Theme.of(context).colorScheme;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: cs.surface,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                  ),
-                  child: SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        20,
-                        4,
-                        20,
-                        MediaQuery.viewInsetsOf(context).bottom + 20,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: buildSelectorContent(context, setState),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          },
+              Expanded(child: StatefulBuilder(builder: buildSelectorContent)),
+            ],
+          ),
         );
       },
-    );
+      );
+    }
   }
 
   void _openStatementDetail(BuildContext context, UserMonthlyStatement row) {
@@ -979,12 +864,20 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                     ref.invalidate(statementProvider);
                                   },
                                 ),
-                                title: Text(
-                                  '${breakdown.poolName}$roundText',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                                title: breakdown.roundDates.isNotEmpty
+                                    ? Text(
+                                        'Âm: ${formatLunarDate(breakdown.roundDates.first)}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      )
+                                    : Text(
+                                        '${breakdown.poolName}$roundText',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                 subtitle: Padding(
                                   padding: const EdgeInsets.only(top: 4.0),
                                   child: Column(
@@ -992,41 +885,40 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        isReceive ? 'Lĩnh' : 'Đóng',
+                                        '${breakdown.poolName}$roundText',
                                         style: TextStyle(
-                                          color: isReceive
-                                              ? Colors.green
-                                              : Colors.red,
+                                          fontSize: 13,
+                                          color: Theme.of(context).colorScheme.onSurface,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
-                                      if (breakdown.roundDates.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Text.rich(
-                                          TextSpan(
-                                            children: [
-                                              TextSpan(
-                                                text:
-                                                    'Âm: ${formatLunarDate(breakdown.roundDates.first)}\n',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              TextSpan(
-                                                text:
-                                                    'Dương: ~${formatSolarDate(breakdown.roundDates.first)}',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ],
+                                      const SizedBox(height: 2),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            isReceive ? 'Lĩnh' : 'Đóng',
+                                            style: TextStyle(
+                                              color: isReceive
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                          if (breakdown.roundDates.isNotEmpty) ...[
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Dương: ~${formatSolarDate(breakdown.roundDates.first)}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -1053,6 +945,71 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
           },
         );
       },
+    );
+  }
+}
+
+class _FilterStatusBadge extends StatelessWidget {
+  final int year;
+  final int? month;
+  final VoidCallback onTap;
+
+  const _FilterStatusBadge({
+    required this.year,
+    required this.month,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: cs.primary,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: cs.primary.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.tune_rounded, size: 16, color: cs.onPrimary),
+            const SizedBox(width: 8),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Năm $year',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onPrimary.withValues(alpha: 0.9),
+                  ),
+                ),
+                Text(
+                  month == null ? 'Chọn tháng' : 'Tháng $month',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: cs.onPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -770,19 +770,9 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Năm: $selectedYear',
+                                  row.userName,
                                   style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Tháng: ${selectedMonth ?? '-'}',
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                    fontSize: 13,
-                                  ),
                                 ),
                               ],
                             ),
@@ -861,7 +851,7 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                         isPaid: value,
                                       );
                                     }
-                                    ref.invalidate(statementProvider);
+                                    refreshAll(ref);
                                   },
                                 ),
                                 title: breakdown.roundDates.isNotEmpty
@@ -905,18 +895,7 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                               fontSize: 12,
                                             ),
                                           ),
-                                          if (breakdown.roundDates.isNotEmpty) ...[
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              'Dương: ~${formatSolarDate(breakdown.roundDates.first)}',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                            ),
-                                          ],
+
                                         ],
                                       ),
                                     ],

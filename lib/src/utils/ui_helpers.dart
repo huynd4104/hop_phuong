@@ -171,9 +171,7 @@ Future<void> openPaymentsSheet(
                                 setSheetState(() {
                                   statusMap[member.id] = checked ?? false;
                                 });
-                                ref.invalidate(roundsProvider);
-                                ref.invalidate(winnerPaidRoundsProvider);
-                                ref.invalidate(fullyPaidContributionRoundsProvider);
+                                refreshAll(ref);
                               },
                               title: Text(
                                 member.name,
@@ -363,6 +361,8 @@ void refreshAll(WidgetRef ref) {
   ref.invalidate(poolsProvider);
   ref.invalidate(roundsProvider);
   ref.invalidate(statementProvider);
+  ref.invalidate(winnerPaidRoundsProvider);
+  ref.invalidate(fullyPaidContributionRoundsProvider);
 }
 
 void showSnackBar(

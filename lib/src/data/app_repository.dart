@@ -514,6 +514,42 @@ class AppRepository {
     return results;
   }
 
+  Future<Set<int>> getFullyPaidContributionRoundIds(int poolId) async {
+    final members = await getPoolMembers(poolId);
+    if (members.isEmpty) return <int>{};
+
+    if (kIsWeb) {
+      final rounds = _mockRounds.where((r) => r.poolId == poolId);
+      final results = <int>{};
+      for (final r in rounds) {
+        final contributors = members.where((m) => m.id != r.winnerId);
+        if (contributors.isEmpty) continue;
+        final allPaid = contributors.every((m) => _mockPaymentStatuses.any((ps) => ps.roundId == r.id && ps.userId == m.id && ps.isPaid));
+        if (allPaid) results.add(r.id);
+      }
+      return results;
+    }
+
+    final rounds = await _isar!.rounds.filter().poolIdEqualTo(poolId).findAll();
+    final roundIds = rounds.map((r) => r.id).toList();
+    final allStatuses = await _isar!.paymentStatus
+        .filter()
+        .anyOf(roundIds, (q, int id) => q.roundIdEqualTo(id))
+        .findAll();
+
+    final results = <int>{};
+    for (final r in rounds) {
+      final contributors = members.where((m) => m.id != r.winnerId);
+      if (contributors.isEmpty) continue;
+      
+      final roundStatuses = allStatuses.where((s) => s.roundId == r.id).toList();
+      final allPaid = contributors.every((m) => roundStatuses.any((s) => s.userId == m.id && s.isPaid));
+      
+      if (allPaid) results.add(r.id);
+    }
+    return results;
+  }
+
   Future<Round?> getRoundById(int id) async {
     if (kIsWeb) {
       return _mockRounds.cast<Round?>().firstWhere((r) => r?.id == id, orElse: () => null);

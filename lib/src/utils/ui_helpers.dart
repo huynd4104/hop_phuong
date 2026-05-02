@@ -174,6 +174,7 @@ Future<void> openPaymentsSheet(
                                 });
                                 ref.invalidate(roundsProvider);
                                 ref.invalidate(winnerPaidRoundsProvider);
+                                ref.invalidate(fullyPaidContributionRoundsProvider);
                               },
                               title: Text(
                                 member.name,

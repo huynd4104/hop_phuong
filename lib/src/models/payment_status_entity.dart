@@ -2,6 +2,7 @@ import 'package:isar/isar.dart';
 
 part 'payment_status_entity.g.dart';
 
+@Name('StatusCol')
 @collection
 class PaymentStatus {
   PaymentStatus({

@@ -262,12 +262,28 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                                                   Text(formatMoney(round.bidAmount)),
                                                 ),
                                                 DataCell(
-                                                  Text(
-                                                    formatMoney(round.contributionAmount),
-                                                    style: TextStyle(
-                                                      color: Theme.of(context).colorScheme.secondary,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
+                                                  Consumer(
+                                                    builder: (context, ref, _) {
+                                                      final fullyPaidAsync = ref.watch(fullyPaidContributionRoundsProvider);
+                                                      final isPaid = fullyPaidAsync.value?.contains(round.id) ?? false;
+                                                      
+                                                      return Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            formatMoney(round.contributionAmount),
+                                                            style: TextStyle(
+                                                              color: isPaid ? Colors.green : Theme.of(context).colorScheme.secondary,
+                                                              fontWeight: FontWeight.bold,
+                                                            ),
+                                                          ),
+                                                          if (isPaid) ...[
+                                                            const SizedBox(width: 4),
+                                                            const Icon(Icons.check_circle_rounded, color: Colors.green, size: 14),
+                                                          ],
+                                                        ],
+                                                      );
+                                                    },
                                                   ),
                                                   onTap: () => openPaymentsSheet(
                                                     context,

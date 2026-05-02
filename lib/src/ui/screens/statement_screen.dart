@@ -229,131 +229,181 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
   // _statementTotals removed
 
   void _openStatementDetail(BuildContext context, UserMonthlyStatement row) {
-    final localPaidState = { for (final b in row.breakdowns) b.poolId: b.isPaid };
+    final localPaidState = {for (final b in row.breakdowns) b.poolId: b.isPaid};
     final filter = ref.read(statementMonthProvider);
     final solarDate = LunarCalendar.lunarToSolar(1, filter.month, filter.year);
+    final controller = DraggableScrollableController();
 
     showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return SingleChildScrollView(
-              primary: false,
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return DraggableScrollableSheet(
+          controller: controller,
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 1.0,
+          snap: true,
+          snapSizes: const [0.6, 1.0],
+          builder: (context, scrollController) {
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  child: Column(
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Lịch âm: ${filter.month}/${filter.year}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text('Dương lịch: ~${solarDate.month}/${solarDate.year}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            formatMoney(row.netBalance.abs()),
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: row.netBalance >= 0 ? Colors.green : Colors.red,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            row.netBalance >= 0 ? 'Tổng lĩnh' : 'Tổng đóng',
-                            style: TextStyle(
-                              color: row.netBalance >= 0 ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
+                      // Handle & Header - Tap to toggle expansion
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          if (controller.size > 0.8) {
+                            controller.animateTo(0.6, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+                          } else {
+                            controller.animateTo(1.0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+                          }
+                        },
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 12),
+                            Container(
+                              width: 36,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 16),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Lịch âm: ${filter.month}/${filter.year}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 4),
+                                      Text('Dương lịch: ~${solarDate.month}/${solarDate.year}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        formatMoney(row.netBalance.abs()),
+                                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                              color: row.netBalance >= 0 ? Colors.green : Colors.red,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        row.netBalance >= 0 ? 'Tổng lĩnh' : 'Tổng đóng',
+                                        style: TextStyle(
+                                          color: row.netBalance >= 0 ? Colors.green : Colors.red,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      ),
+                      
+                      // List of items
+                      Expanded(
+                        child: ListView.builder(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                          itemCount: row.breakdowns.length,
+                          itemBuilder: (context, index) {
+                            final breakdown = row.breakdowns[index];
+                            final roundText = breakdown.roundNumbers.isNotEmpty ? ' - Người ${breakdown.roundNumbers.join(", ")}' : '';
+                            final isReceive = breakdown.netBalance >= 0;
+                            final isPaid = localPaidState[breakdown.poolId] ?? false;
+
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              child: ListTile(
+                                leading: Checkbox(
+                                  value: isPaid,
+                                  onChanged: (val) async {
+                                    if (val == null) return;
+                                    
+                                    final confirm = await showConfirmDialog(
+                                      context,
+                                      'Xác nhận cập nhật',
+                                      'Bạn có chắc chắn muốn cập nhật trạng thái thanh toán?',
+                                    );
+                                    if (!confirm) return;
+
+                                    setState(() => localPaidState[breakdown.poolId] = val);
+                                    final repo = await ref.read(appRepositoryProvider.future);
+                                    for (final roundId in breakdown.roundIds) {
+                                      await repo.setPaymentStatus(
+                                        userId: row.userId,
+                                        roundId: roundId,
+                                        isPaid: val,
+                                      );
+                                    }
+                                    ref.invalidate(statementProvider);
+                                  },
+                                ),
+                                title: Text('${breakdown.poolName}$roundText', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        isReceive ? 'Lĩnh' : 'Đóng',
+                                        style: TextStyle(
+                                          color: isReceive ? Colors.green : Colors.red,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      if (breakdown.roundDates.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text.rich(
+                                          TextSpan(
+                                            children: [
+                                              TextSpan(text: 'Âm: ${formatLunarDate(breakdown.roundDates.first)}\n', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                              TextSpan(text: 'Dương: ~${formatSolarDate(breakdown.roundDates.first)}', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                trailing: Text(
+                                  formatMoney(breakdown.netBalance.abs()), 
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    color: isReceive ? Colors.green : Colors.red,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  ...row.breakdowns.map(
-                    (breakdown) {
-                      final roundText = breakdown.roundNumbers.isNotEmpty ? ' - Người ${breakdown.roundNumbers.join(", ")}' : '';
-                      final isReceive = breakdown.netBalance >= 0;
-                      final isPaid = localPaidState[breakdown.poolId] ?? false;
-
-                      return Card(
-                        child: ListTile(
-                          leading: Checkbox(
-                            value: isPaid,
-                            onChanged: (val) async {
-                              if (val == null) return;
-                              
-                              final confirm = await showConfirmDialog(
-                                context,
-                                'Xác nhận cập nhật',
-                                'Bạn có chắc chắn muốn cập nhật trạng thái thanh toán?',
-                              );
-                              if (!confirm) return;
-
-                              setState(() => localPaidState[breakdown.poolId] = val);
-                              final repo = await ref.read(appRepositoryProvider.future);
-                              for (final roundId in breakdown.roundIds) {
-                                await repo.setPaymentStatus(
-                                  userId: row.userId,
-                                  roundId: roundId,
-                                  isPaid: val,
-                                );
-                              }
-                              ref.invalidate(statementProvider);
-                            },
-                          ),
-                          title: Text('${breakdown.poolName}$roundText', style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  isReceive ? 'Lĩnh' : 'Đóng',
-                                  style: TextStyle(
-                                    color: isReceive ? Colors.green : Colors.red,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                if (breakdown.roundDates.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text.rich(
-                                    TextSpan(
-                                      children: [
-                                        TextSpan(text: 'Âm: ${formatLunarDate(breakdown.roundDates.first)}\n', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                        TextSpan(text: 'Dương: ~${formatSolarDate(breakdown.roundDates.first)}', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          trailing: Text(
-                            formatMoney(breakdown.netBalance.abs()), 
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                              color: isReceive ? Colors.green : Colors.red,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                );
+              },
             );
           },
         );

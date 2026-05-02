@@ -14,8 +14,8 @@ extension GetPaymentStatusCollection on Isar {
 }
 
 const PaymentStatusSchema = CollectionSchema(
-  name: r'PaymentStatus',
-  id: 796065,
+  name: r'StatusCol',
+  id: 7946220982285359202,
   properties: {
     r'isPaid': PropertySchema(
       id: 0,

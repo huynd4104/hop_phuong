@@ -14,8 +14,8 @@ extension GetRoundCollection on Isar {
 }
 
 const RoundSchema = CollectionSchema(
-  name: r'Round',
-  id: 723583,
+  name: r'RoundCol',
+  id: 3443326441915538338,
   properties: {
     r'bidAmount': PropertySchema(
       id: 0,
@@ -65,7 +65,7 @@ const RoundSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'poolId': IndexSchema(
-      id: 847275,
+      id: 3683634265834513514,
       name: r'poolId',
       unique: false,
       replace: false,

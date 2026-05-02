@@ -2,6 +2,7 @@ import 'package:isar/isar.dart';
 
 part 'round_entity.g.dart';
 
+@Name('RoundCol')
 @collection
 class Round {
   Round({

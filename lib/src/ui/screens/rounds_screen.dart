@@ -105,6 +105,8 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
               );
             }
 
+            final isMobile = MediaQuery.sizeOf(context).width < 700;
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -139,7 +141,7 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                     Expanded(
                       flex: 2,
                       child: DropdownButtonFormField<int>(
-                        initialValue: pool.id,
+                        value: pool.id,
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(horizontal: 16),
                         ),
@@ -196,6 +198,25 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
                             title: 'Không tìm thấy người nào',
                             subtitle:
                                 'Phường này có thể đang trống hoặc bộ lọc tìm kiếm không có kết quả.',
+                          );
+                        }
+
+                        if (isMobile) {
+                          return ListView.separated(
+                            padding: const EdgeInsets.only(bottom: 80),
+                            itemCount: rounds.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final round = rounds[index];
+                              final winnerName = labelForUser(members, round.winnerId);
+                              
+                              return _RoundMobileCard(
+                                round: round,
+                                winnerName: winnerName,
+                                pool: pool,
+                                repository: repository,
+                              );
+                            },
                           );
                         }
 
@@ -435,5 +456,205 @@ class _RoundsScreenState extends ConsumerState<RoundsScreen> {
       }
     }
     return pools.isEmpty ? null : pools.first;
+  }
+}
+
+class _RoundMobileCard extends ConsumerWidget {
+  final Round round;
+  final String winnerName;
+  final Pool pool;
+  final AppRepository repository;
+
+  const _RoundMobileCard({
+    required this.round,
+    required this.winnerName,
+    required this.pool,
+    required this.repository,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          // Header: Round Info
+          InkWell(
+            onTap: () => openRoundDialog(
+              context,
+              ref,
+              repository: repository,
+              pool: pool,
+              round: round,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${round.roundNumber}',
+                      style: TextStyle(
+                        color: cs.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          winnerName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Âm lịch: ${formatLunarDate(round.date)}',
+                          style: TextStyle(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: cs.outline),
+                ],
+              ),
+            ),
+          ),
+          Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.5)),
+          // Data Section: Amounts
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                _AmountItem(
+                  label: 'Tiền đấu',
+                  amount: round.bidAmount,
+                  color: cs.primary,
+                ),
+                _AmountItem(
+                  label: 'Tiền đóng',
+                  amount: round.contributionAmount,
+                  color: cs.secondary,
+                  onTap: () => openPaymentsSheet(
+                    context,
+                    ref,
+                    repository: repository,
+                    pool: pool,
+                    round: round,
+                    showOnlyWinner: false,
+                  ),
+                  isPaidProvider: fullyPaidContributionRoundsProvider,
+                  roundId: round.id,
+                ),
+                _AmountItem(
+                  label: 'Tiền nhận',
+                  amount: round.netReceiveAmount,
+                  color: cs.tertiary,
+                  onTap: () => openPaymentsSheet(
+                    context,
+                    ref,
+                    repository: repository,
+                    pool: pool,
+                    round: round,
+                    showOnlyWinner: true,
+                  ),
+                  isPaidProvider: winnerPaidRoundsProvider,
+                  roundId: round.id,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AmountItem extends ConsumerWidget {
+  final String label;
+  final int amount;
+  final Color color;
+  final VoidCallback? onTap;
+  final ProviderListenable<AsyncValue<Set<int>>>? isPaidProvider;
+  final int? roundId;
+
+  const _AmountItem({
+    required this.label,
+    required this.amount,
+    required this.color,
+    this.onTap,
+    this.isPaidProvider,
+    this.roundId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final isPaid = isPaidProvider != null && roundId != null
+        ? ref.watch(isPaidProvider!).value?.contains(roundId!) ?? false
+        : false;
+
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    formatMoney(amount),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: isPaid ? Colors.green : color,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isPaid) ...[
+                  const SizedBox(width: 2),
+                  const Icon(Icons.check_circle_rounded, color: Colors.green, size: 12),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

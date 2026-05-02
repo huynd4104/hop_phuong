@@ -205,6 +205,11 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                 final cs = Theme.of(context).colorScheme;
 
                                 return Card(
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                                  ),
                                   clipBehavior: Clip.antiAlias,
                                   child: InkWell(
                                     onTap: () =>
@@ -213,24 +218,6 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                       padding: const EdgeInsets.all(12),
                                       child: Row(
                                         children: [
-                                          IgnorePointer(
-                                            child: SizedBox(
-                                              width: 24,
-                                              height: 24,
-                                              child: Checkbox(
-                                                value: row.isAllPaid,
-                                                onChanged: (_) {},
-                                                materialTapTargetSize:
-                                                    MaterialTapTargetSize
-                                                        .shrinkWrap,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
                                           Container(
                                             width: 44,
                                             height: 44,
@@ -263,14 +250,15 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                                 Text(
                                                   row.userName,
                                                   style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
+                                                    fontWeight: FontWeight.bold,
                                                     fontSize: 15,
                                                   ),
                                                 ),
+                                                const SizedBox(height: 2),
                                                 Row(
                                                   children: [
                                                     Icon(
-                                                      Icons.phone_outlined,
+                                                      Icons.phone_rounded,
                                                       size: 13,
                                                       color:
                                                           cs.onSurfaceVariant,
@@ -279,7 +267,7 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                                     Text(
                                                       row.phone,
                                                       style: TextStyle(
-                                                        fontSize: 13,
+                                                        fontSize: 12,
                                                         color:
                                                             cs.onSurfaceVariant,
                                                       ),
@@ -296,13 +284,35 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                                               Text(
                                                 formatMoney(row.netBalance),
                                                 style: TextStyle(
-                                                  fontWeight: FontWeight.w700,
+                                                  fontWeight: FontWeight.w800,
                                                   fontSize: 16,
                                                   color: row.netBalance >= 0
                                                       ? Colors.green
                                                       : Colors.red,
                                                 ),
                                               ),
+                                              if (row.isAllPaid)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(top: 4),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.green.withValues(alpha: 0.1),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: const Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(Icons.check_rounded, size: 10, color: Colors.green),
+                                                        SizedBox(width: 2),
+                                                        Text(
+                                                          'Đã xong',
+                                                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.green),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
                                             ],
                                           ),
                                         ],
@@ -401,6 +411,8 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
     final useDialog = size.width >= 720;
     final contentMaxWidth = size.width >= 1200 ? 920.0 : 720.0;
 
+    final isMobile = size.width < 600;
+
     Widget buildSelectorContent(BuildContext panelContext, StateSetter setState) {
       final cs = Theme.of(panelContext).colorScheme;
 
@@ -468,9 +480,9 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: size.width > 900 ? 6 : (size.width > 400 ? 4 : 3),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 2.2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: isMobile ? 1.8 : 2.2,
             ),
             itemCount: 12,
             itemBuilder: (context, index) {

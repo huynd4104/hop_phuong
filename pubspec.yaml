@@ -13,8 +13,8 @@ dependencies:
   flutter_riverpod: ^2.6.1
   flutter_localizations:
     sdk: flutter
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
+  isar: 3.1.0
+  isar_flutter_libs: 3.1.0
   intl: ^0.20.2
   lunar_calendar:
     path: packages/lunar_calendar
@@ -28,7 +28,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   build_runner: ^2.4.13
-  isar_generator: ^3.1.0+1
+  isar_generator: 3.1.0
 
 flutter:
   uses-material-design: true

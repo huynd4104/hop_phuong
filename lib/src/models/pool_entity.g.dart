@@ -15,7 +15,7 @@ extension GetPoolCollection on Isar {
 
 const PoolSchema = CollectionSchema(
   name: r'PoolModel',
-  id: 5585627829132900352,
+  id: 5585627829132900042,
   properties: {
     r'baseAmount': PropertySchema(
       id: 0,
@@ -54,7 +54,7 @@ const PoolSchema = CollectionSchema(
   getId: _poolGetId,
   getLinks: _poolGetLinks,
   attach: _poolAttach,
-  version: '3.1.0+1',
+  version: '3.1.0',
 );
 
 int _poolEstimateSize(

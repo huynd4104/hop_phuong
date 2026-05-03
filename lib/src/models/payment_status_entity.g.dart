@@ -15,7 +15,7 @@ extension GetPaymentStatusCollection on Isar {
 
 const PaymentStatusSchema = CollectionSchema(
   name: r'StatusCol',
-  id: 99999999,
+  id: 7946220982285359202,
   properties: {
     r'history': PropertySchema(
       id: 0,
@@ -55,7 +55,7 @@ const PaymentStatusSchema = CollectionSchema(
   getId: _paymentStatusGetId,
   getLinks: _paymentStatusGetLinks,
   attach: _paymentStatusAttach,
-  version: '3.1.0+1',
+  version: '3.1.0',
 );
 
 int _paymentStatusEstimateSize(
@@ -792,7 +792,7 @@ extension PaymentStatusQueryProperty
 
 const PaymentEntrySchema = Schema(
   name: r'PaymentEntry',
-  id: 88888888,
+  id: 6433024785584750851,
   properties: {
     r'amount': PropertySchema(
       id: 0,

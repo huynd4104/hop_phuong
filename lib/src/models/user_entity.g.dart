@@ -15,7 +15,7 @@ extension GetUserCollection on Isar {
 
 const UserSchema = CollectionSchema(
   name: r'UserModel',
-  id: 7195426469378571264,
+  id: 7195426469378571114,
   properties: {
     r'isOwner': PropertySchema(
       id: 0,
@@ -40,7 +40,7 @@ const UserSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'isOwner': IndexSchema(
-      id: 9098430331623926784,
+      id: 9098430331623926960,
       name: r'isOwner',
       unique: false,
       replace: false,
@@ -58,7 +58,7 @@ const UserSchema = CollectionSchema(
   getId: _userGetId,
   getLinks: _userGetLinks,
   attach: _userAttach,
-  version: '3.1.0+1',
+  version: '3.1.0',
 );
 
 int _userEstimateSize(

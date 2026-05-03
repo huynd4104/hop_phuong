@@ -15,7 +15,7 @@ extension GetPoolMemberCollection on Isar {
 
 const PoolMemberSchema = CollectionSchema(
   name: r'PoolMemberModel',
-  id: 8088951819342267392,
+  id: 8088951819342266924,
   properties: {
     r'poolId': PropertySchema(
       id: 0,
@@ -35,7 +35,7 @@ const PoolMemberSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'poolId': IndexSchema(
-      id: 3683634265834513408,
+      id: 3683634265834513514,
       name: r'poolId',
       unique: false,
       replace: false,
@@ -48,7 +48,7 @@ const PoolMemberSchema = CollectionSchema(
       ],
     ),
     r'user_index': IndexSchema(
-      id: 7458788173502522368,
+      id: 7458788173502522258,
       name: r'user_index',
       unique: false,
       replace: false,
@@ -66,7 +66,7 @@ const PoolMemberSchema = CollectionSchema(
   getId: _poolMemberGetId,
   getLinks: _poolMemberGetLinks,
   attach: _poolMemberAttach,
-  version: '3.1.0+1',
+  version: '3.1.0',
 );
 
 int _poolMemberEstimateSize(

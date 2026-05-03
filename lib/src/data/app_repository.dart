@@ -47,7 +47,7 @@ class AppRepository {
     }
 
     final directory = await getApplicationDocumentsDirectory();
-    final isarDirectory = Directory('${directory.path}/hop_phuong_isar');
+    final isarDirectory = Directory('${directory.path}/hop_phuong_isar_v2');
     if (!await isarDirectory.exists()) {
       await isarDirectory.create(recursive: true);
     }

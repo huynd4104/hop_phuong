@@ -1118,6 +1118,35 @@ class AppRepository {
     return options;
   }
 
+  Future<Map<String, List<UserMonthlyStatement>>> getAllStatementsGroupedByMonth() async {
+    List<Round> allRounds;
+    if (kIsWeb) {
+      allRounds = List.from(_mockRounds);
+    } else {
+      allRounds = await _isar!.rounds.where().anyId().findAll();
+    }
+
+    if (allRounds.isEmpty) return {};
+
+    // Nhóm Round ID theo Tháng/Năm
+    final groups = <String, Set<int>>{};
+    for (final round in allRounds) {
+      final lunar = LunarCalendar.solarToLunar(round.date);
+      final key = '${lunar.month.toString().padLeft(2, '0')}/${lunar.year}';
+      groups.putIfAbsent(key, () => <int>{}).add(round.id);
+    }
+
+    final result = <String, List<UserMonthlyStatement>>{};
+    for (final entry in groups.entries) {
+      final statements = await buildStatementForRoundIds(roundIds: entry.value);
+      if (statements.isNotEmpty) {
+        result[entry.key] = statements;
+      }
+    }
+
+    return result;
+  }
+
   Future<List<UserMonthlyStatement>> buildStatementForRoundIds({
     required Set<int> roundIds,
     String query = '',

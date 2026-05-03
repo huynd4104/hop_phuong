@@ -1,50 +1,22 @@
-import 'package:hop_phuong/src/services/sample_data_service.dart';
-import 'package:hop_phuong/src/models/backup_snapshot.dart';
 import 'package:hop_phuong/src/utils/ui_helpers.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:flutter/foundation.dart';
+import 'package:hop_phuong/src/models/backup_snapshot.dart';
 import 'package:hop_phuong/src/data/app_repository.dart';
-import 'package:hop_phuong/src/models/user_entity.dart';
-import 'package:hop_phuong/src/models/pool_entity.dart';
-import 'package:hop_phuong/src/models/pool_member_entity.dart';
-import 'package:hop_phuong/src/models/round_entity.dart';
-import 'package:hop_phuong/src/models/payment_status_entity.dart';
-import 'package:hop_phuong/src/models/statement_models.dart';
 import 'package:hop_phuong/src/providers/app_providers.dart';
 import 'package:hop_phuong/src/services/backup_service.dart';
-import 'package:hop_phuong/src/services/financial_calculator.dart';
-import 'package:hop_phuong/src/services/lunar_schedule_service.dart';
 import 'package:hop_phuong/src/services/statement_export_service.dart';
-import 'package:hop_phuong/src/utils/formatters.dart';
+import 'package:hop_phuong/src/services/sample_data_service.dart';
 
-// UI Imports (nếu cần)
-import 'package:hop_phuong/src/ui/screens/home_shell.dart';
-import 'package:hop_phuong/src/ui/screens/members_screen.dart';
-import 'package:hop_phuong/src/ui/screens/pools_screen.dart';
-import 'package:hop_phuong/src/ui/screens/rounds_screen.dart';
-import 'package:hop_phuong/src/ui/screens/statement_screen.dart';
-import 'package:hop_phuong/src/ui/screens/backup_screen.dart';
-import 'package:hop_phuong/src/ui/widgets/side_nav.dart';
-import 'package:hop_phuong/src/ui/widgets/info_card.dart';
+// UI Imports
 import 'package:hop_phuong/src/ui/widgets/feature_card.dart';
-import 'package:hop_phuong/src/ui/widgets/mini_chip.dart';
-import 'package:hop_phuong/src/ui/widgets/pool_header_card.dart';
-import 'package:hop_phuong/src/ui/widgets/empty_state.dart';
 import 'package:hop_phuong/src/ui/widgets/error_view.dart';
-import 'package:hop_phuong/src/ui/widgets/date_info_card.dart';
-import 'package:hop_phuong/src/ui/dialogs/user_dialog.dart';
-import 'package:hop_phuong/src/ui/dialogs/pool_dialog.dart';
-import 'package:hop_phuong/src/ui/dialogs/round_dialog.dart';
-import 'package:hop_phuong/src/models/statement_totals.dart';
 
 class BackupScreen extends ConsumerStatefulWidget {
   const BackupScreen({super.key});
@@ -64,9 +36,6 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedYear = ref.watch(statementSelectedYearProvider);
-    final selectedMonth = ref.watch(statementSelectedMonthProvider);
-    final selectedRoundIds = ref.watch(statementSelectedRoundIdsProvider);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -198,30 +167,23 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   const SizedBox(height: 12),
                   FeatureCard(
                     icon: Icons.table_view_outlined,
-                    title: 'Xuất bảng kê ra Excel',
+                    title: 'Xuất toàn bộ dữ liệu ra Excel',
                     subtitle:
-                        'Tạo tệp .xlsx cho các kỳ phường đã chọn trên tab Bảng kê.',
+                        'Tạo tệp .xlsx chứa báo cáo tất cả các tháng (mỗi tháng 1 sheet).',
                     trailing: FilledButton.tonalIcon(
                       onPressed: () async {
                         try {
-                          if (selectedRoundIds.isEmpty ||
-                              selectedMonth == null) {
-                            throw StateError(
-                              'Hãy chọn năm, tháng và ít nhất một kỳ phường trước khi xuất Excel.',
-                            );
+                          showSnackBar(context, 'Đang chuẩn bị dữ liệu toàn hệ thống...');
+                          
+                          final monthlyData = await repository.getAllStatementsGroupedByMonth();
+
+                          if (monthlyData.isEmpty) {
+                            throw StateError('Không có dữ liệu kỳ hụi nào trong hệ thống.');
                           }
 
-                          final rows = await repository
-                              .buildStatementForRoundIds(
-                                roundIds: selectedRoundIds,
-                                query: '',
-                              );
-                          final file = await StatementExportService()
-                              .exportMonthlyStatementToExcel(
-                                month: selectedMonth,
-                                year: selectedYear,
-                                statements: rows,
-                              );
+                          final file = await StatementExportService().exportAllStatementsToExcel(
+                            monthlyData: monthlyData,
+                          );
                           
                           if (context.mounted) {
                             final box = context.findRenderObject() as RenderBox?;
@@ -236,15 +198,20 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                             if (context.mounted) {
                               showSnackBar(
                                 context,
-                                'Đã xuất file Excel thành công!',
+                                'Đã xuất toàn bộ dữ liệu Excel thành công!',
                               );
                             }
                           }
                         } catch (error) {
                           if (context.mounted) {
+                            final message = error.toString()
+                                .replaceFirst('Bad state: ', '')
+                                .replaceFirst('Exception: ', '')
+                                .replaceFirst('StateError: ', '');
+                                
                             showSnackBar(
                               context,
-                              error.toString(),
+                              message,
                               isError: true,
                             );
                           }
@@ -288,6 +255,45 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         }
                       },
                       child: const Text('Nạp lại'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FeatureCard(
+                    icon: Icons.delete_forever_outlined,
+                    title: 'Xóa sạch dữ liệu',
+                    subtitle: 'Xóa vĩnh viễn toàn bộ thành viên, dây hụi và lịch sử giao dịch.',
+                    trailing: OutlinedButton(
+                      onPressed: () async {
+                        final confirm = await showConfirmDialog(
+                          context,
+                          'Xóa vĩnh viễn',
+                          'Hành động này sẽ xóa toàn bộ dữ liệu trong máy và KHÔNG THỂ hoàn tác. Bạn có chắc chắn muốn xóa sạch không?',
+                          isDestructive: true,
+                          confirmLabel: 'Xóa vĩnh viễn',
+                        );
+                        if (!confirm || !context.mounted) return;
+
+                        try {
+                          await repository.clearAll();
+                          refreshAll(ref);
+                          if (context.mounted) {
+                            showSnackBar(context, 'Đã xóa sạch dữ liệu thành công');
+                          }
+                        } catch (error) {
+                          if (context.mounted) {
+                            showSnackBar(
+                              context,
+                              error.toString(),
+                              isError: true,
+                            );
+                          }
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                        side: BorderSide(color: Theme.of(context).colorScheme.error),
+                      ),
+                      child: const Text('Xóa sạch'),
                     ),
                   ),
                 ],

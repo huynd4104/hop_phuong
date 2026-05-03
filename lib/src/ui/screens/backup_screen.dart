@@ -99,11 +99,23 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           final file = await BackupService(
                             repository,
                           ).exportBackup();
+                          
                           if (context.mounted) {
-                            showSnackBar(
-                              context,
-                              'Đã lưu sao lưu: ${file.path}',
+                            final box = context.findRenderObject() as RenderBox?;
+                            final rect = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+
+                            // Show share sheet
+                            await Share.shareXFiles(
+                              [XFile(file.path)],
+                              sharePositionOrigin: rect,
                             );
+
+                            if (context.mounted) {
+                              showSnackBar(
+                                context,
+                                'Đã xuất sao lưu thành công!',
+                              );
+                            }
                           }
                         } catch (error) {
                           if (context.mounted) {
@@ -210,11 +222,23 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                                 year: selectedYear,
                                 statements: rows,
                               );
+                          
                           if (context.mounted) {
-                            showSnackBar(
-                              context,
-                              'Đã lưu file Excel: ${file.path}',
+                            final box = context.findRenderObject() as RenderBox?;
+                            final rect = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+
+                            // Show share sheet
+                            await Share.shareXFiles(
+                              [XFile(file.path)],
+                              sharePositionOrigin: rect,
                             );
+
+                            if (context.mounted) {
+                              showSnackBar(
+                                context,
+                                'Đã xuất file Excel thành công!',
+                              );
+                            }
                           }
                         } catch (error) {
                           if (context.mounted) {

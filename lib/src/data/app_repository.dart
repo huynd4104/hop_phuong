@@ -46,8 +46,22 @@ class AppRepository {
       return AppRepository._(null);
     }
 
-    final directory = await getApplicationDocumentsDirectory();
-    final isarDirectory = Directory('${directory.path}/hop_phuong_isar_v2');
+    final docsDir = await getApplicationDocumentsDirectory();
+    final supportDir = await getApplicationSupportDirectory();
+    
+    final oldIsarDir = Directory('${docsDir.path}/hop_phuong_isar_v2');
+    final isarDirectory = Directory('${supportDir.path}/hop_phuong_isar_v2');
+
+    // Migration: Move database from Documents to ApplicationSupport if needed
+    if (await oldIsarDir.exists() && !await isarDirectory.exists()) {
+      try {
+        await isarDirectory.parent.create(recursive: true);
+        await oldIsarDir.rename(isarDirectory.path);
+      } catch (e) {
+        debugPrint('Failed to migrate database to Support directory: $e');
+      }
+    }
+
     if (!await isarDirectory.exists()) {
       await isarDirectory.create(recursive: true);
     }
@@ -1477,7 +1491,7 @@ class AppRepository {
         'Lưu file trực tiếp không được hỗ trợ trên Web. Vui lòng sử dụng tính năng tải xuống.',
       );
     }
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getTemporaryDirectory();
     final exportDirectory = Directory('${directory.path}/hop_phuong_exports');
     if (!await exportDirectory.exists()) {
       await exportDirectory.create(recursive: true);

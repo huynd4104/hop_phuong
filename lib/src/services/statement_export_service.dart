@@ -65,7 +65,7 @@ class StatementExportService {
       );
     }
 
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getTemporaryDirectory();
     final exportDirectory = Directory('${directory.path}/hop_phuong_exports');
     if (!await exportDirectory.exists()) {
       await exportDirectory.create(recursive: true);
